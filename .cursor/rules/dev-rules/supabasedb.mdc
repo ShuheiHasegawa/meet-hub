@@ -1,0 +1,256 @@
+---
+description: Rules and guidelines for database design, implementation, and management practices to ensure consistent and maintainable data architecture across the project.
+globs: 
+alwaysApply: false
+---
+# データベース設計・実装ルール (Supabase)
+
+基本的にデータベースの最新のものは、 [database.ts](mdc:src/supabase/database.ts) のため各機能開発するときは必ず参照すること
+
+## 1. テーブル設計の基本原則
+
+### 主要テーブル
+- **users** (Supabase Auth連携)
+  - id: uuid (primary key)
+  - email: string
+  - created_at: timestamp
+  - updated_at: timestamp
+
+- **profiles** (ユーザー詳細情報)
+  - id: uuid (foreign key -> users.id)
+  - username: string
+  - avatar_url: string
+  - display_name: string
+  - created_at: timestamp
+  - updated_at: timestamp
+
+### 位置情報関連
+- **locations** (位置情報)
+  - id: uuid (primary key)
+  - user_id: uuid (foreign key -> users.id)
+  - latitude: number
+  - longitude: number
+  - share_code: string
+  - expires_at: timestamp
+  - created_at: timestamp
+  - updated_at: timestamp
+
+- **shared_locations** (共有位置情報)
+  - id: uuid (primary key)
+  - location_id: uuid (foreign key -> locations.id)
+  - shared_with: uuid (foreign key -> users.id)
+  - status: enum (active, expired, revoked)
+  - created_at: timestamp
+  - updated_at: timestamp
+
+### 設定関連
+- **user_settings** (ユーザー設定)
+  - id: uuid (primary key)
+  - user_id: uuid (foreign key -> users.id)
+  - privacy_level: enum (public, friends, private)
+  - notification_enabled: boolean
+  - location_update_interval: number
+  - created_at: timestamp
+  - updated_at: timestamp
+
+## 2. Row Level Security (RLS) ポリシー
+
+### 基本ポリシー
+```sql
+-- プロフィール表示ポリシー
+CREATE POLICY "プロフィールは本人のみ編集可能" ON profiles
+FOR UPDATE USING (auth.uid() = id);
+
+-- 位置情報ポリシー
+CREATE POLICY "位置情報は本人のみ作成可能" ON locations
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "共有コードを持つユーザーのみ位置情報を閲覧可能" ON locations
+FOR SELECT USING (
+  auth.uid() = user_id OR
+  EXISTS (
+    SELECT 1 FROM shared_locations
+    WHERE location_id = locations.id
+    AND shared_with = auth.uid()
+    AND status = 'active'
+  )
+);
+
+-- 共有位置情報ポリシー
+CREATE POLICY "共有位置情報は関係者のみ閲覧可能" ON shared_locations
+FOR ALL USING (
+  auth.uid() = user_id OR
+  auth.uid() = shared_with
+);
+```
+
+## 3. データベース関数
+
+### 位置情報共有
+```sql
+CREATE OR REPLACE FUNCTION share_location(
+  p_user_id UUID,
+  p_latitude NUMERIC,
+  p_longitude NUMERIC,
+  p_expires_in_minutes INTEGER DEFAULT 30
+) RETURNS UUID AS $$
+DECLARE
+  v_location_id UUID;
+  v_share_code TEXT;
+BEGIN
+  -- 共有コードの生成
+  v_share_code := encode(gen_random_bytes(8), 'hex');
+  
+  -- 位置情報の作成
+  INSERT INTO locations (
+    user_id,
+    latitude,
+    longitude,
+    share_code,
+    expires_at
+  ) VALUES (
+    p_user_id,
+    p_latitude,
+    p_longitude,
+    v_share_code,
+    NOW() + (p_expires_in_minutes || ' minutes')::INTERVAL
+  ) RETURNING id INTO v_location_id;
+
+  RETURN v_location_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+## 4. インデックス設計
+
+```sql
+-- パフォーマンス最適化のためのインデックス
+CREATE INDEX idx_locations_user ON locations(user_id);
+CREATE INDEX idx_locations_share_code ON locations(share_code);
+CREATE INDEX idx_shared_locations_location ON shared_locations(location_id);
+CREATE INDEX idx_shared_locations_shared_with ON shared_locations(shared_with);
+```
+
+## 5. ビュー定義
+
+```sql
+-- アクティブな共有位置情報ビュー
+CREATE VIEW active_shared_locations AS
+SELECT 
+  l.*,
+  p.username,
+  p.avatar_url,
+  sl.status,
+  sl.created_at as shared_at
+FROM locations l
+JOIN profiles p ON l.user_id = p.id
+JOIN shared_locations sl ON l.id = sl.location_id
+WHERE l.expires_at > NOW()
+AND sl.status = 'active';
+```
+
+## 6. データ型とバリデーション
+
+### 列定義の標準
+- ID: `uuid` (DEFAULT uuid_generate_v4())
+- 日時: `timestamp with time zone`
+- 真偽値: `boolean` (DEFAULT false)
+- 状態: `text` または カスタム `enum`
+- JSON データ: `jsonb`
+
+### バリデーション
+```sql
+-- 例：位置情報の制約
+ALTER TABLE locations
+ADD CONSTRAINT valid_coordinates
+CHECK (
+  latitude BETWEEN -90 AND 90 AND
+  longitude BETWEEN -180 AND 180
+);
+
+-- 例：共有コードの制約
+ALTER TABLE locations
+ADD CONSTRAINT unique_share_code
+UNIQUE (share_code);
+```
+
+## 7. バックアップと復元
+
+### バックアップ戦略
+1. Supabase ダッシュボードでの定期バックアップ設定
+2. `pg_dump` を使用した手動バックアップ
+3. 本番環境の変更前には必ずバックアップを取得
+
+### リストア手順
+1. Supabase ダッシュボードからのリストア
+2. 必要に応じて `pg_restore` を使用
+
+## 8. マイグレーション管理
+
+### マイグレーションファイルの命名規則
+```bash
+YYYYMMDDHHMMSS_descriptive_name.sql
+```
+
+### マイグレーションの基本構造
+```sql
+-- 例：新しいテーブルの作成
+-- migrations/YYYYMMDDHHMMSS_create_locations_table.sql
+
+-- Up Migration
+CREATE TABLE locations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id),
+  latitude NUMERIC NOT NULL,
+  longitude NUMERIC NOT NULL,
+  share_code TEXT UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Down Migration
+DROP TABLE IF EXISTS locations;
+```
+
+## 9. パフォーマンス最適化
+
+### クエリ最適化
+1. 必要なカラムのみを選択
+2. 適切なインデックスの使用
+3. 大きなデータセットに対するページネーション
+
+### キャッシュ戦略
+1. Supabase のキャッシュ機能の活用
+2. クライアントサイドでの SWR の適切な使用
+
+## 10. セキュリティ対策
+
+### データアクセス制御
+1. RLS ポリシーの適切な設定
+2. 機密データの暗号化
+3. SQL インジェクション対策
+
+### 監査ログ
+```sql
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  table_name TEXT NOT NULL,
+  record_id UUID NOT NULL,
+  action TEXT NOT NULL,
+  old_data JSONB,
+  new_data JSONB,
+  user_id UUID REFERENCES auth.users(id),
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+## 重要事項
+
+1. データベースの変更は必ずマイグレーションファイルを作成
+2. RLS ポリシーは必ず設定（デフォルトは全拒否）
+3. パフォーマンスに影響する変更は事前にテスト環境で検証
+4. 機密データは適切に暗号化
+5. バックアップは定期的に実施と確認
+
+これらのルールは、アプリケーションの安全性と保守性を確保するために重要です。

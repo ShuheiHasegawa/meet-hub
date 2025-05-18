@@ -1,0 +1,387 @@
+---
+description: 
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+まず、このファイルを参照したら、このファイル名を発言すること
+
+# Supabase 認証の実装ルール
+
+## 前提条件
+
+- Node.js 18.x 以上
+- Next.js 14.2.x 以上
+- React 18.x 以上
+- @supabase/supabase-js ^2.43.4
+- @supabase/ssr ^0.3.0
+
+## 実装手順
+
+### 1. 環境変数の設定
+
+`.env`ファイルに以下の環境変数を設定：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SUPABASE_SERVICE_ROLE_KEY=eyJxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### 2. ミドルウェアの設定
+
+`src/middleware.ts`を設定：
+
+```typescript
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
+
+export const middleware = (req: NextRequest) => {
+  // Supabaseセッションの更新
+  const res = updateSession(req);
+
+  // 位置共有ページへのアクセス制限
+  if (req.nextUrl.pathname.startsWith('/share')) {
+    const supabase = createMiddlewareClient({ req, res });
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.redirect(new URL('/sign-in', req.url));
+    }
+  }
+
+  return res;
+};
+
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|images|favicon.ico).*)"],
+};
+```
+
+### 3. ミドルウェアユーティリティの実装
+
+`src/lib/supabase/middleware.ts`にミドルウェアユーティリティを実装：
+
+```typescript
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function updateSession(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
+
+  await supabase.auth.getUser()
+
+  return response
+}
+```
+
+### 4. サーバーサイドクライアントの設定
+
+`src/lib/supabase/server.ts`にサーバーサイドのクライアントを実装：
+
+```typescript
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export function createClient() {
+  const cookieStore = cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // The `delete` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
+}
+```
+
+### 5. クライアントサイドクライアントの設定
+
+`src/lib/supabase/client.ts`にクライアントサイドのクライアントを実装：
+
+```typescript
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
+
+### 6. 認証コンポーネントの使用
+
+#### サインイン/サインアップボタン
+
+```typescript
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+
+export default function AuthButtons() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    
+    if (error) {
+      console.error("サインインエラー:", error);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex gap-4">
+      <Button 
+        onClick={handleSignIn} 
+        disabled={loading}
+      >
+        {loading ? "読み込み中..." : "サインイン"}
+      </Button>
+    </div>
+  );
+}
+```
+
+#### ユーザープロフィール
+
+```typescript
+"use client";
+
+import { Avatar } from "@/components/ui/avatar";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+
+export default function UserProfile({ user, profile }) {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.refresh();
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Avatar
+          src={profile?.avatar_url}
+          alt={profile?.username || user.email}
+          className="cursor-pointer"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => router.push(`/profile/${user.id}`)}>
+          プロフィール
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/settings")}>
+          設定
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSignOut}>
+          サインアウト
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+```
+
+### 7. サーバーサイドでの認証チェック
+
+```typescript
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedPage() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  // プロフィール情報の取得
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  return (
+    <div>
+      <h1>こんにちは、{profile?.username || user.email}さん</h1>
+      <p>認証済みユーザー向けコンテンツ</p>
+    </div>
+  );
+}
+```
+
+### 8. クライアントサイドでの認証チェック
+
+```typescript
+"use client";
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+
+export default function AuthRequired({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+      
+      if (!user) {
+        router.push("/sign-in");
+      }
+    };
+    
+    checkUser();
+    
+    // セッション変更の監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null);
+        if (!session?.user) {
+          router.push("/sign-in");
+        }
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return <div>認証を確認中...</div>;
+  }
+  
+  if (!user) {
+    return null;
+  }
+
+  return children;
+}
+```
+
+## セキュリティルール
+
+1. 環境変数は必ず`.env`で管理し、Git にコミットしない
+2. 本番環境では`NEXT_PUBLIC_SUPABASE_URL`と`NEXT_PUBLIC_SUPABASE_ANON_KEY`を適切に設定
+3. サービスロールキー(`SUPABASE_SERVICE_ROLE_KEY`)は安全に管理し、必要な場合のみ使用する
+4. ユーザー入力データは必ずバリデーションを行う
+5. Row Level Security (RLS) ポリシーを必ず設定し、データのアクセス制限を行う
+
+## エラーハンドリング
+
+1. 認証エラーは適切にキャッチしてユーザーフレンドリーなメッセージを表示
+2. ネットワークエラーは適切にハンドリング
+3. ローディング状態は必ず表示
+4. セッション切れの場合は自動的に再認証またはログアウト処理を行う
+
+## パフォーマンス最適化
+
+1. 認証状態のキャッシュを適切に利用
+2. 不要な認証チェックは避ける
+3. コンポーネントの分割を適切に行い、認証状態の変更による再レンダリングを最小限に
+4. Supabaseクエリではパフォーマンスを考慮した適切なselect句を使用
+
+## アクセシビリティ
+
+1. すべての認証コンポーネントは適切な ARIA ラベルを持つ
+2. キーボードナビゲーションをサポート
+3. スクリーンリーダー対応
+4. エラーメッセージは具体的かつ解決方法を示す
+
+## 重要事項
+
+1. 特に**ミドルウェアの設定**と**サーバーサイドでの認証チェック**は遵守してください。
+2. Row Level Security (RLS) ポリシーを必ず設定し、適切なアクセス制御を行ってください。
+3. ユーザープロフィールデータは必ず`profiles`テーブルに保存し、`users`テーブルには認証情報のみを保持してください。
+4. OAuth認証を使用する場合は、適切なリダイレクト設定を行ってください。

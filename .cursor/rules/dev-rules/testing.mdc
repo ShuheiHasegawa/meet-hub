@@ -1,0 +1,268 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# テスト実装ルール
+
+## 1. テストの種類と範囲
+
+### ユニットテスト
+- 個々の関数やコンポーネントのテスト
+- ビジネスロジックのテスト
+- ユーティリティ関数のテスト
+
+### 統合テスト
+- コンポーネント間の連携テスト
+- API との通信テスト
+- データフローのテスト
+
+### E2Eテスト
+- ユーザーフロー全体のテスト
+- 実際のブラウザ環境でのテスト
+- パフォーマンステスト
+
+## 2. テスト環境のセットアップ
+
+### 必要なパッケージ
+```json
+{
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "@types/jest": "^29.0.0"
+  }
+}
+```
+
+### Jest 設定
+```javascript
+// jest.config.js
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
+  },
+  testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.stories.{js,jsx,ts,tsx}'
+  ]
+};
+```
+
+## 3. テストの書き方
+
+### コンポーネントテスト
+```typescript
+// __tests__/components/ARMarker.test.tsx
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ARMarker } from '@/components/ARMarker';
+
+describe('ARMarker', () => {
+  it('renders marker with correct position', () => {
+    const position = { latitude: 35.6812, longitude: 139.7671 };
+    render(<ARMarker position={position} />);
+    
+    expect(screen.getByTestId('ar-marker')).toBeInTheDocument();
+    expect(screen.getByTestId('ar-marker')).toHaveStyle({
+      transform: expect.stringContaining('translate3d')
+    });
+  });
+
+  it('handles user interaction', async () => {
+    const onTap = jest.fn();
+    render(<ARMarker onTap={onTap} />);
+    
+    await userEvent.click(screen.getByTestId('ar-marker'));
+    expect(onTap).toHaveBeenCalled();
+  });
+});
+```
+
+### フックのテスト
+```typescript
+// __tests__/hooks/useLocation.test.ts
+import { renderHook, act } from '@testing-library/react';
+import { useLocation } from '@/hooks/useLocation';
+
+describe('useLocation', () => {
+  it('updates location when position changes', () => {
+    const { result } = renderHook(() => useLocation());
+    
+    act(() => {
+      result.current.updatePosition({
+        latitude: 35.6812,
+        longitude: 139.7671
+      });
+    });
+    
+    expect(result.current.position).toEqual({
+      latitude: 35.6812,
+      longitude: 139.7671
+    });
+  });
+});
+```
+
+### API のテスト
+```typescript
+// __tests__/api/location.test.ts
+import { shareLocation, getSharedLocation } from '@/api/location';
+
+describe('Location API', () => {
+  it('shares location successfully', async () => {
+    const location = {
+      latitude: 35.6812,
+      longitude: 139.7671
+    };
+    
+    const result = await shareLocation(location);
+    expect(result).toHaveProperty('shareCode');
+    expect(result.shareCode).toBeTruthy();
+  });
+
+  it('retrieves shared location', async () => {
+    const shareCode = 'test-code';
+    const location = await getSharedLocation(shareCode);
+    
+    expect(location).toHaveProperty('latitude');
+    expect(location).toHaveProperty('longitude');
+  });
+});
+```
+
+## 4. テストカバレッジ
+
+### カバレッジ目標
+- ステートメント: 80%以上
+- ブランチ: 70%以上
+- 関数: 80%以上
+- 行: 80%以上
+
+### カバレッジレポート
+```bash
+npm test -- --coverage
+```
+
+## 5. モックとスタブ
+
+### API モック
+```typescript
+// __mocks__/api/location.ts
+export const mockLocationAPI = {
+  shareLocation: jest.fn().mockResolvedValue({
+    shareCode: 'test-code',
+    expiresAt: new Date()
+  }),
+  getSharedLocation: jest.fn().mockResolvedValue({
+    latitude: 35.6812,
+    longitude: 139.7671
+  })
+};
+```
+
+### ブラウザ API モック
+```typescript
+// jest.setup.js
+Object.defineProperty(window, 'navigator', {
+  value: {
+    geolocation: {
+      getCurrentPosition: jest.fn()
+    }
+  }
+});
+```
+
+## 6. テストの実行
+
+### 開発時のテスト
+```bash
+# ウォッチモード
+npm test -- --watch
+
+# 特定のファイルのみ
+npm test -- path/to/test.test.ts
+```
+
+### CI/CD でのテスト
+```yaml
+# .github/workflows/test.yml
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - run: npm install
+      - run: npm test
+```
+
+## 7. テストのベストプラクティス
+
+### 命名規則
+- テストファイル: `*.test.ts(x)`
+- テストスイート: コンポーネント/機能名
+- テストケース: 期待される動作を説明
+
+### テストの構造
+```typescript
+describe('Component/Feature', () => {
+  // セットアップ
+  beforeEach(() => {
+    // 共通のセットアップ
+  });
+
+  // テストケース
+  it('should do something', () => {
+    // テストの実装
+  });
+
+  // クリーンアップ
+  afterEach(() => {
+    // 共通のクリーンアップ
+  });
+});
+```
+
+### アサーション
+- 具体的な期待値を記述
+- エラーメッセージを明確に
+- 適切なアサーションメソッドを使用
+
+## 8. デバッグ
+
+### テストのデバッグ
+```typescript
+// デバッグ用のログ
+console.log('Test state:', state);
+
+// テストの一時停止
+debugger;
+```
+
+### カバレッジの分析
+```bash
+# カバレッジレポートの生成
+npm test -- --coverage --coverageReporters='text-summary'
+
+# HTML レポートの生成
+npm test -- --coverage --coverageReporters='html'
+```
+
+## 重要事項
+
+1. テストは開発と同時に書く
+2. テストカバレッジを定期的に確認
+3. モックは必要最小限に
+4. テストは独立して実行可能に
+5. エッジケースも考慮する

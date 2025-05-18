@@ -1,0 +1,167 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# UI/UX 設計・実装ルール
+
+## 1. スタイリング優先順位
+
+### 重要度: 最高
+
+1. **Tailwind CSS（最優先）**
+   ```typescript
+   <div className="mt-4 mb-2 flex items-center justify-between">
+   ```
+
+2. **Shadcn/ui（コンポーネント固有のスタイル）**
+   ```typescript
+   const styles = {
+     container: {
+       backgroundColor: 'hsl(var(--background))',
+       borderRadius: 'var(--radius)'
+     }
+   }
+   ```
+
+3. **CSS Modules（特殊なケースのみ）**
+   - AR表示のスタイリング
+   - アニメーションの実装
+   - 動的スタイリング
+
+❌ **禁止される実装**
+```typescript
+// インラインスタイル
+<div style={{ marginTop: '20px' }}>  // NG
+<div className="mt-5">               // OK
+
+// ハードコードされた値
+margin: 20px;                        // NG
+margin: var(--spacing-5);            // OK
+```
+
+## 2. スタイリング規約
+
+### Tailwind CSS の使用
+
+1. **スペーシング**
+   - マージン: `m-{size}`, `mt-{size}`, `mb-{size}`, `mx-{size}`, `my-{size}`
+   - パディング: `p-{size}`, `pt-{size}`, `pb-{size}`, `px-{size}`, `py-{size}`
+   - ギャップ: `gap-{size}`, `gap-x-{size}`, `gap-y-{size}`
+
+2. **レイアウト**
+   - Flexbox: `flex`, `items-center`, `justify-between`
+   - 位置: `relative`, `absolute`, `fixed`, `sticky`
+   - サイズ: `w-full`, `h-full`
+
+3. **レスポンシブ**
+   ```typescript
+   <div className="mt-2 md:mt-4 lg:mt-6">
+   ```
+
+### Shadcn/ui の使用
+
+1. **テーマ変数**
+   ```typescript
+   const styles = {
+     container: {
+       backgroundColor: 'hsl(var(--background))',
+       borderRadius: 'var(--radius)',
+       transition: 'var(--transition)'
+     }
+   }
+   ```
+
+2. **レスポンシブ対応**
+   ```typescript
+   const styles = {
+     container: {
+       '@media (min-width: 768px)': {
+         // タブレット以上のスタイル
+       }
+     }
+   }
+   ```
+
+## 3. コンポーネント設計原則
+
+1. **スタイリングの優先順位**
+   ```typescript
+   return (
+     <div 
+       className="p-4 flex items-center" // 汎用的なスタイル
+       className={styles.container}      // コンポーネント固有のスタイル
+     >
+   ```
+
+2. **レスポンシブデザイン**
+   - モバイルファーストアプローチ
+   - Tailwindのブレークポイントを使用
+   - 必要な場合のみCSS Modulesで拡張
+
+## 4. グローバルスタイル
+
+1. **globals.css**
+   - ルート変数の定義
+   - ダークモード対応
+   - 基本的なリセットスタイル
+
+2. **tailwind.config.js**
+   - カスタムテーマ設定
+   - ブレークポイント設定
+   - プラグイン設定
+
+## 5. 実装ガイドライン
+
+1. **新規コンポーネント作成時**
+   ```typescript
+   // 1. まずTailwind CSSのユーティリティクラスで実装
+   // 2. 足りない部分をShadcn/uiで補完
+   // 3. 特殊なケースのみCSS Modulesを使用
+   ```
+
+2. **既存コンポーネントの改修**
+   - インラインスタイルは順次Tailwindクラスに移行
+   - ハードコードされた値はテーマ変数に置換
+
+3. **パフォーマンス考慮**
+   - 不要なスタイル定義を避ける
+   - CSS-in-JSの過剰な使用を避ける
+
+## 6. AR表示のスタイリング
+
+1. **ARマーカー**
+   ```typescript
+   const styles = {
+     marker: {
+       position: 'absolute',
+       transform: 'translate(-50%, -50%)',
+       transition: 'all 0.3s ease'
+     }
+   }
+   ```
+
+2. **ARオーバーレイ**
+   ```typescript
+   const styles = {
+     overlay: {
+       position: 'fixed',
+       top: 0,
+       left: 0,
+       width: '100%',
+       height: '100%',
+       pointerEvents: 'none'
+     }
+   }
+   ```
+
+## 7. コードレビュー基準
+
+1. Tailwind CSSのユーティリティクラスを使用しているか
+2. コンポーネント固有のスタイルは適切に分離されているか
+3. インラインスタイルが使用されていないか
+4. テーマ変数が適切に使用されているか
+5. レスポンシブ対応が適切か
+6. AR表示のスタイリングが適切か
+
+これらのルールに従うことで、保守性が高く一貫性のあるUIを実現できます。
