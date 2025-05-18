@@ -14,10 +14,7 @@ export default function ARDisplay() {
     loading: positionLoading,
     error: positionError,
     getCurrentPosition,
-  } = useGeolocation({
-    enableHighAccuracy: true,
-    watchPosition: true, // 継続的に位置情報を更新
-  });
+  } = useGeolocation();
 
   // サンプル用ターゲット位置（実際にはAPI呼び出しやDBから取得する）
   const [targetPosition, setTargetPosition] = useState<GeoPosition | null>(
