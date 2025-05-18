@@ -37,9 +37,7 @@ const LocationMap = dynamic(() => import("@/components/map/LocationMap"), {
 
 export default function ShareLocationForm() {
   // Geolocation APIを使用して現在位置を取得
-  const { position, error, loading, getCurrentPosition } = useGeolocation({
-    enableHighAccuracy: true,
-  });
+  const { position, error, loading, getCurrentPosition } = useGeolocation();
 
   // フォームの状態
   const [formData, setFormData] = useState<CreateSharedLocationInput>({
@@ -60,7 +58,6 @@ export default function ShareLocationForm() {
         altitude: position.altitude,
         accuracy: position.accuracy,
         heading: position.heading,
-        speed: position.speed,
       }));
     }
   }, [position]);
@@ -186,7 +183,7 @@ export default function ShareLocationForm() {
 
           {error ? (
             <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-3 rounded-md text-sm">
-              位置情報の取得に失敗しました: {error.message}
+              位置情報の取得に失敗しました: {error}
             </div>
           ) : position ? (
             <>

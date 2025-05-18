@@ -130,9 +130,7 @@ export default function LocationMap({
     loading: positionLoading,
     error: positionError,
     getCurrentPosition,
-  } = useGeolocation({
-    enableHighAccuracy: true,
-  });
+  } = useGeolocation();
 
   // マップコンテナがマウントされたらフラグを立てる
   useEffect(() => {
@@ -203,7 +201,7 @@ export default function LocationMap({
       {positionError && (
         <div className="absolute top-12 left-2 z-[1000] max-w-xs">
           <div className="bg-red-500/80 text-white px-3 py-1.5 rounded-md text-xs">
-            位置情報の取得に失敗: {positionError.message}
+            位置情報の取得に失敗: {positionError}
           </div>
         </div>
       )}

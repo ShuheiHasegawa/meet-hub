@@ -55,9 +55,7 @@ export default function MapController() {
     loading: positionLoading,
     error: positionError,
     getCurrentPosition,
-  } = useGeolocation({
-    enableHighAccuracy: true,
-  });
+  } = useGeolocation();
 
   // 共有コードからの位置情報取得時の処理
   const handleLocationFound = (location: GeoPosition, name: string) => {

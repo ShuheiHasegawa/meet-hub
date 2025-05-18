@@ -49,7 +49,7 @@ export default function ARDisplay() {
     return (
       <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300">
         <h3 className="font-bold mb-2">位置情報の取得に失敗しました</h3>
-        <p>{positionError.message}</p>
+        <p>{positionError}</p>
         <Button
           className="mt-4"
           variant="outline"

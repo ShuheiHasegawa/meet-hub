@@ -128,10 +128,13 @@ export default function SharedLocationView({
   const toggleARMode = () => {
     if (!arMode) {
       // ARモードをオンにする前にセンサー許可を要求
-      if (typeof DeviceOrientationEvent.requestPermission === "function") {
+      if (
+        typeof (DeviceOrientationEvent as any).requestPermission === "function"
+      ) {
         // iOS 13+ の場合、許可を要求
-        DeviceOrientationEvent.requestPermission()
-          .then((permissionState) => {
+        (DeviceOrientationEvent as any)
+          .requestPermission()
+          .then((permissionState: string) => {
             if (permissionState === "granted") {
               setArMode(true);
             } else {

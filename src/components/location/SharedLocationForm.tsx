@@ -33,13 +33,13 @@ export default function SharedLocationForm({
     try {
       const location = await getLocationByShareCode(shareCode);
 
-      if (!location) {
+      if (!location || !location.success || !location.data) {
         toast.error("指定された共有コードの位置情報が見つかりませんでした");
         return;
       }
 
       // 見つかった位置情報の有効期限を確認
-      const expiresAt = new Date(location.expires_at);
+      const expiresAt = new Date(location.data.expires_at);
       if (expiresAt < new Date()) {
         toast.error("この位置情報の共有期限が切れています");
         return;
@@ -51,15 +51,14 @@ export default function SharedLocationForm({
       // コールバック関数があれば呼び出す
       if (onLocationFound) {
         const geoPosition: GeoPosition = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy || undefined,
-          altitude: location.altitude || undefined,
-          heading: location.heading || undefined,
-          speed: location.speed || undefined,
+          latitude: location.data.latitude,
+          longitude: location.data.longitude,
+          accuracy: location.data.accuracy || undefined,
+          altitude: location.data.altitude || undefined,
+          heading: location.data.heading || undefined,
         };
 
-        const name = location.location_name || "共有位置";
+        const name = location.data.location_name || "共有位置";
         onLocationFound(geoPosition, name);
       }
 
