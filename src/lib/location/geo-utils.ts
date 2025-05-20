@@ -88,9 +88,23 @@ export function getFormattedDistance(distance: number): string {
 /**
  * 位置情報のシェアリンクを生成
  */
-export function generateShareLink(shareCode: string, baseUrl?: string): string {
-  const base = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-  return `${base}/share/${shareCode}`;
+export function generateShareLink(shareCode: string): string {
+  // 現在のロケールを取得（window が利用可能な場合のみ）
+  let locale = 'ja'; // デフォルト言語
+  
+  if (typeof window !== 'undefined') {
+    // パスから現在のロケールを取得
+    const pathParts = window.location.pathname.split('/');
+    if (pathParts.length > 1 && (pathParts[1] === 'ja' || pathParts[1] === 'en')) {
+      locale = pathParts[1];
+    }
+    
+    // リンクを生成（ロケールを含む）
+    return `${window.location.origin}/${locale}/share/${shareCode}`;
+  }
+  
+  // フォールバック（サーバーサイドの場合）
+  return `/share/${shareCode}`;
 }
 
 /**

@@ -202,67 +202,68 @@ export async function createSharedLocation(locationData: LocationCreate | Locati
 /**
  * 共有コードから位置情報を取得
  */
-export async function getSharedLocation(shareCode: string) {
-  // テーブルの存在確認は直接クエリで実施
+export async function getSharedLocation(code: string) {
+  const supabase = createClient();
+
+  console.log("Fetching shared location:", code);
+  
   try {
-    console.log("共有位置情報の取得開始:", shareCode);
-    const supabase = createClient();
-    
-    // 位置情報を取得
+    // 単純なクエリでまず試行（JOINなし）
     const { data, error } = await supabase
-      .from("locations")
-      .select(`
-        *,
-        creator:user_id (
-          id,
-          email,
-          created_at
-        )
-      `)
-      .eq("share_code", shareCode)
-      .eq("is_active", true)
+      .from('locations')
+      .select('*')
+      .eq('share_code', code)
+      .eq('is_active', true)
       .single();
     
     if (error) {
       console.error("共有位置情報取得エラー:", error);
-      const errorMessage = 
-        error.code === 'PGRST116' ? 
-          `共有コード「${shareCode}」に該当する位置情報が見つかりませんでした。` : 
-          "指定された共有コードの位置情報が見つかりません";
-          
-      return { 
-        success: false, 
-        error: errorMessage,
-        code: "not_found"
-      };
-    }
-    
-    // 期限切れチェック
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      // 期限切れなら非アクティブに更新
-      await supabase
-        .from("locations")
-        .update({ is_active: false })
-        .eq("id", data.id);
+      
+      // 外部キーエラーの場合、別のアプローチを試す
+      if (error.code === 'PGRST200') {
+        // シンプルなRPC関数を作成していれば使用
+        /*
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_shared_location_by_code', { share_code_param: code })
+          .single();
         
+        if (!rpcError) {
+          return { success: true, location: rpcData, error: null };
+        }
+        */
+        
+        // SQL文を直接実行（最終手段）
+        const { data: rawData, error: rawError } = await supabase
+          .from('locations')
+          .select(`
+            id, share_code, latitude, longitude, 
+            altitude, accuracy, heading, 
+            title, description, expires_at, is_active, 
+            created_at, updated_at
+          `)
+          .eq('share_code', code)
+          .eq('is_active', true)
+          .single();
+        
+        if (!rawError) {
+          return { success: true, location: rawData, error: null };
+        }
+      }
+      
       return { 
         success: false, 
-        error: `この共有位置情報は有効期限（${new Date(data.expires_at).toLocaleString()}）が切れています`,
-        code: "expired"
+        location: null, 
+        error: "指定された共有コードの位置情報が見つかりませんでした" 
       };
     }
     
-    console.log("共有位置情報の取得成功:", data.id);
-    return { 
-      success: true, 
-      location: data 
-    };
+    return { success: true, location: data, error: null };
   } catch (error) {
-    console.error("位置情報取得エラー:", error);
+    console.error("共有位置情報取得処理エラー:", error);
     return { 
       success: false, 
-      error: `位置情報の取得に失敗しました: ${(error as Error).message}`,
-      code: "unknown_error"
+      location: null, 
+      error: `位置情報の取得中にエラーが発生しました: ${(error as Error).message}` 
     };
   }
 }

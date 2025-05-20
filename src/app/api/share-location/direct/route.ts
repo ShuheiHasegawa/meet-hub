@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { nanoid } from "nanoid";
+import { generateShareCode } from '@/lib/location/shareCode';
+import { getLocaleFromPathname } from '@/lib/i18n/utils';
 
 // APIタイムアウト30秒
 const API_TIMEOUT = 30000;
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
   });
   
   try {
+    // リクエストからロケールを取得
+    const locale = getLocaleFromPathname(request.nextUrl.pathname) || 'ja';
+
     // リクエストボディをパース
     const body = await request.json();
     console.log("[DirectAPI] 受信データ:", JSON.stringify(body));
@@ -60,10 +64,6 @@ export async function POST(request: NextRequest) {
     console.log("[DirectAPI] 処理データ:", JSON.stringify(locationData));
 
     // 独自に共有コードを生成
-    const generateShareCode = () => {
-      return nanoid(6);
-    };
-    
     const shareCode = generateShareCode();
     console.log("[DirectAPI] 生成された共有コード:", shareCode);
     
@@ -113,7 +113,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       shareCode: shareCode,
-      location: result.data
+      data: result.data,
+      locale,
+      link: `/${locale}/share/${shareCode}`
     });
   } catch (error) {
     console.error("[DirectAPI] 位置情報共有エラー", error);
