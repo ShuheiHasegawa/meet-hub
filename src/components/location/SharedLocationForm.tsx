@@ -22,6 +22,7 @@ export default function SharedLocationForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Submitting share code:", shareCode);
 
     if (!shareCode.trim()) {
       toast.error("共有コードを入力してください");
@@ -32,8 +33,14 @@ export default function SharedLocationForm({
 
     try {
       const location = await getLocationByShareCode(shareCode);
+      console.log("API Response:", location);
 
       if (!location || !location.success || !location.data) {
+        console.log("Condition failed:", {
+          locationIsNull: !location,
+          successIsFalse: location && !location.success,
+          dataIsMissing: location && location.success && !location.data,
+        });
         toast.error("指定された共有コードの位置情報が見つかりませんでした");
         return;
       }

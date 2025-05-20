@@ -151,12 +151,13 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
 export async function getLocationByShareCode(shareCode: string): Promise<ShareLocationResponse | ShareLocationErrorResponse> {
   const supabase = createClient();
   
-  // 共有コードでの検索
+  console.log("Fetching location with share code:", shareCode);
   const { data, error } = await supabase
     .from('locations')
     .select('*')
-    .eq('share_code', shareCode)
+    .eq('share_code', shareCode.trim())
     .single();
+  console.log("Query result:", { data, error });
   
   if (error) {
     if (error.code === 'PGRST116') {
@@ -164,10 +165,16 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
       return null;
     }
     console.error("位置情報の取得エラー:", error);
-    throw new Error(`位置情報の取得に失敗しました: ${error.message}`);
+    return { 
+      success: false, 
+      error: "指定された共有コードの位置情報が見つかりませんでした" 
+    };
   }
   
-  return data;
+  return { 
+    success: true, 
+    data: data // 適切なデータを返す
+  };
 }
 
 /**
