@@ -162,12 +162,15 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
   if (error) {
     if (error.code === 'PGRST116') {
       // データが見つからない場合
-      return null;
+      return {
+        success: false,
+        error: "指定された共有コードの位置情報が見つかりませんでした"
+      };
     }
     console.error("位置情報の取得エラー:", error);
     return { 
       success: false, 
-      error: "指定された共有コードの位置情報が見つかりませんでした" 
+      error: `位置情報の取得に失敗しました: ${error.message}` 
     };
   }
   

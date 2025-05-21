@@ -32,21 +32,30 @@ export default function SharedLocationForm({
     setIsLoading(true);
 
     try {
-      const location = await getLocationByShareCode(shareCode);
-      console.log("API Response:", location);
+      // 共有コードで位置情報を検索
+      const response = await getLocationByShareCode(shareCode);
+      console.log("API Response:", response);
 
-      if (!location || !location.success || !location.data) {
-        console.log("Condition failed:", {
-          locationIsNull: !location,
-          successIsFalse: location && !location.success,
-          dataIsMissing: location && location.success && !location.data,
-        });
+      // レスポンスがnullの場合（データが見つからない）
+      if (!response) {
         toast.error("指定された共有コードの位置情報が見つかりませんでした");
         return;
       }
 
+      // エラーの場合
+      if (!response.success) {
+        toast.error(response.error || "位置情報の取得に失敗しました");
+        return;
+      }
+
+      // データがない場合
+      if (!response.data) {
+        toast.error("位置情報のデータが見つかりませんでした");
+        return;
+      }
+
       // 見つかった位置情報の有効期限を確認
-      const expiresAt = new Date(location.data.expires_at);
+      const expiresAt = new Date(response.data.expires_at);
       if (expiresAt < new Date()) {
         toast.error("この位置情報の共有期限が切れています");
         return;
@@ -54,25 +63,24 @@ export default function SharedLocationForm({
 
       // データが見つかった場合の処理
       toast.success(`${shareCode}の位置情報を表示します`);
+      console.log("Found location data:", response.data);
 
       // コールバック関数があれば呼び出す
       if (onLocationFound) {
         const geoPosition: GeoPosition = {
-          latitude: location.data.latitude,
-          longitude: location.data.longitude,
-          accuracy: location.data.accuracy || undefined,
-          altitude: location.data.altitude || undefined,
-          heading: location.data.heading || undefined,
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          accuracy: response.data.accuracy || undefined,
+          altitude: response.data.altitude || undefined,
+          heading: response.data.heading || undefined,
         };
 
-        const name = location.data.location_name || "共有位置";
+        const name = response.data.location_name || "共有位置";
         onLocationFound(geoPosition, name);
       }
-
-      // ルーター利用のリダイレクトは不要、同じページ内で操作
     } catch (error) {
       console.error("位置情報の取得エラー:", error);
-      toast.error("位置情報の取得に失敗しました");
+      toast.error(`位置情報の取得に失敗しました: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
