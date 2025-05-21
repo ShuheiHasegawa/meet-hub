@@ -157,12 +157,12 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
   
   try {
     // 直接REST APIを使用してデータを取得
-    // ※共有コードのみでフィルターし、user_idによる制限は行わない
+    // ※共有コードのみでフィルターし、user_idやis_activeによる制限は行わない
     const { data, error } = await supabase
       .from('locations')
       .select('*')
       .eq('share_code', normalizedShareCode)
-      .eq('is_active', true) // アクティブな共有位置情報のみを検索
+      // is_activeフィルターを削除して、共有コードのみで検索
       .single();
     
     console.log("Query result:", { data, error });
@@ -185,6 +185,7 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
     // データのエンコーディングを確認し、必要なら修正
     if (data) {
       // location_nameとmessageのデコード処理（必要な場合）
+      // 古いスキーマ対応
       if (data.location_name && typeof data.location_name === 'string') {
         try {
           // 文字化けしている可能性があるためデコード
@@ -201,6 +202,33 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
         } catch (e) {
           console.warn("メッセージのデコードに失敗:", e);
         }
+      }
+      
+      // 新しいスキーマ対応
+      if (data.title && typeof data.title === 'string') {
+        try {
+          data.title = decodeURIComponent(escape(data.title));
+        } catch (e) {
+          console.warn("タイトルのデコードに失敗:", e);
+        }
+      }
+      
+      if (data.description && typeof data.description === 'string') {
+        try {
+          data.description = decodeURIComponent(escape(data.description));
+        } catch (e) {
+          console.warn("説明のデコードに失敗:", e);
+        }
+      }
+      
+      // SharedLocationからLocation型へのマッピング処理
+      // 古いスキーマから新しいスキーマへの変換
+      if (data.location_name && !data.title) {
+        data.title = data.location_name;
+      }
+      
+      if (data.message && !data.description) {
+        data.description = data.message;
       }
     }
     
