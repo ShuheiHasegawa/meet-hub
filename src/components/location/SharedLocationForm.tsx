@@ -24,7 +24,10 @@ export default function SharedLocationForm({
     e.preventDefault();
     console.log("Submitting share code:", shareCode);
 
-    if (!shareCode.trim()) {
+    // 共有コードを整形（トリムして大文字に変換）
+    const formattedShareCode = shareCode.trim().toUpperCase();
+
+    if (!formattedShareCode) {
       toast.error("共有コードを入力してください");
       return;
     }
@@ -33,53 +36,86 @@ export default function SharedLocationForm({
 
     try {
       // 共有コードで位置情報を検索
-      const response = await getLocationByShareCode(shareCode);
-      console.log("API Response:", response);
+      console.log(`[DEBUG] 共有コード検索開始: "${formattedShareCode}"`);
+      const response = await getLocationByShareCode(formattedShareCode);
+      console.log(
+        "[DEBUG] APIレスポンス完全なオブジェクト:",
+        JSON.stringify(response)
+      );
 
       // レスポンスがnullの場合（データが見つからない）
       if (!response) {
+        console.error("[ERROR] レスポンスがnullです");
         toast.error("指定された共有コードの位置情報が見つかりませんでした");
         return;
       }
 
       // エラーの場合
       if (!response.success) {
+        console.error("[ERROR] APIエラー:", response.error);
         toast.error(response.error || "位置情報の取得に失敗しました");
         return;
       }
 
       // データがない場合
       if (!response.data) {
+        console.error("[ERROR] データが空です");
         toast.error("位置情報のデータが見つかりませんでした");
         return;
       }
 
+      // データの詳細ログ
+      console.log("[DEBUG] 取得された位置情報の詳細:", {
+        id: response.data.id,
+        share_code: response.data.share_code,
+        latitude: response.data.latitude,
+        longitude: response.data.longitude,
+        location_name: response.data.location_name,
+        message: response.data.message,
+        expires_at: response.data.expires_at,
+      });
+
       // 見つかった位置情報の有効期限を確認
       const expiresAt = new Date(response.data.expires_at);
-      if (expiresAt < new Date()) {
+      const now = new Date();
+      console.log("[DEBUG] 有効期限チェック:", {
+        expiresAt,
+        now,
+        isExpired: expiresAt < now,
+      });
+
+      if (expiresAt < now) {
         toast.error("この位置情報の共有期限が切れています");
         return;
       }
 
       // データが見つかった場合の処理
-      toast.success(`${shareCode}の位置情報を表示します`);
-      console.log("Found location data:", response.data);
+      toast.success(`${formattedShareCode}の位置情報を表示します`);
+      console.log("[DEBUG] 位置情報の表示処理開始");
 
       // コールバック関数があれば呼び出す
       if (onLocationFound) {
-        const geoPosition: GeoPosition = {
-          latitude: response.data.latitude,
-          longitude: response.data.longitude,
-          accuracy: response.data.accuracy || undefined,
-          altitude: response.data.altitude || undefined,
-          heading: response.data.heading || undefined,
-        };
+        try {
+          const geoPosition: GeoPosition = {
+            latitude: response.data.latitude,
+            longitude: response.data.longitude,
+            accuracy: response.data.accuracy || undefined,
+            altitude: response.data.altitude || undefined,
+            heading: response.data.heading || undefined,
+          };
 
-        const name = response.data.location_name || "共有位置";
-        onLocationFound(geoPosition, name);
+          const name = response.data.location_name || "共有位置";
+          console.log("[DEBUG] コールバック呼び出し:", { geoPosition, name });
+          onLocationFound(geoPosition, name);
+        } catch (callbackError) {
+          console.error("[ERROR] コールバック実行エラー:", callbackError);
+          toast.error("位置情報の表示処理に失敗しました");
+        }
+      } else {
+        console.log("[DEBUG] コールバック関数がありません");
       }
     } catch (error) {
-      console.error("位置情報の取得エラー:", error);
+      console.error("[ERROR] 位置情報の取得エラー:", error);
       toast.error(`位置情報の取得に失敗しました: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);

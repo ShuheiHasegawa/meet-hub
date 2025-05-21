@@ -151,33 +151,68 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
 export async function getLocationByShareCode(shareCode: string): Promise<ShareLocationResponse | ShareLocationErrorResponse> {
   const supabase = createClient();
   
-  console.log("Fetching location with share code:", shareCode);
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .eq('share_code', shareCode.trim())
-    .single();
-  console.log("Query result:", { data, error });
+  // 共有コードの正規化（トリムして大文字に変換）
+  const normalizedShareCode = shareCode.trim().toUpperCase();
+  console.log("Fetching location with normalized share code:", normalizedShareCode);
   
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // データが見つからない場合
-      return {
-        success: false,
-        error: "指定された共有コードの位置情報が見つかりませんでした"
+  try {
+    // 直接REST APIを使用してデータを取得
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('share_code', normalizedShareCode)
+      .single();
+    
+    console.log("Query result:", { data, error });
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // データが見つからない場合
+        return {
+          success: false,
+          error: "指定された共有コードの位置情報が見つかりませんでした"
+        };
+      }
+      console.error("位置情報の取得エラー:", error);
+      return { 
+        success: false, 
+        error: `位置情報の取得に失敗しました: ${error.message}` 
       };
     }
-    console.error("位置情報の取得エラー:", error);
+    
+    // データのエンコーディングを確認し、必要なら修正
+    if (data) {
+      // location_nameとmessageのデコード処理（必要な場合）
+      if (data.location_name && typeof data.location_name === 'string') {
+        try {
+          // 文字化けしている可能性があるためデコード
+          data.location_name = decodeURIComponent(escape(data.location_name));
+        } catch (e) {
+          console.warn("位置名のデコードに失敗:", e);
+        }
+      }
+      
+      if (data.message && typeof data.message === 'string') {
+        try {
+          // 文字化けしている可能性があるためデコード
+          data.message = decodeURIComponent(escape(data.message));
+        } catch (e) {
+          console.warn("メッセージのデコードに失敗:", e);
+        }
+      }
+    }
+    
     return { 
-      success: false, 
-      error: `位置情報の取得に失敗しました: ${error.message}` 
+      success: true, 
+      data: data
+    };
+  } catch (error) {
+    console.error("位置情報取得中の予期せぬエラー:", error);
+    return {
+      success: false,
+      error: `位置情報取得中にエラーが発生しました: ${(error as Error).message}`
     };
   }
-  
-  return { 
-    success: true, 
-    data: data // 適切なデータを返す
-  };
 }
 
 /**
