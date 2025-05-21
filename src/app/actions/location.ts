@@ -157,10 +157,12 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
   
   try {
     // 直接REST APIを使用してデータを取得
+    // ※共有コードのみでフィルターし、user_idによる制限は行わない
     const { data, error } = await supabase
       .from('locations')
       .select('*')
       .eq('share_code', normalizedShareCode)
+      .eq('is_active', true) // アクティブな共有位置情報のみを検索
       .single();
     
     console.log("Query result:", { data, error });
