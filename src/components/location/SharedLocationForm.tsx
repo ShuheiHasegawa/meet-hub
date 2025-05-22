@@ -70,8 +70,8 @@ export default function SharedLocationForm({
         share_code: response.data.share_code,
         latitude: response.data.latitude,
         longitude: response.data.longitude,
-        location_name: response.data.location_name,
-        message: response.data.message,
+        title: response.data.title,
+        description: response.data.description,
         expires_at: response.data.expires_at,
       });
 
@@ -104,7 +104,7 @@ export default function SharedLocationForm({
             heading: response.data.heading || undefined,
           };
 
-          const name = response.data.location_name || "共有位置";
+          const name = response.data.title || "共有位置";
           console.log("[DEBUG] コールバック呼び出し:", { geoPosition, name });
           onLocationFound(geoPosition, name);
         } catch (callbackError) {

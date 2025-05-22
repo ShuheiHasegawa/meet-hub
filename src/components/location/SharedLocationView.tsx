@@ -65,8 +65,8 @@ export default function SharedLocationView({
 
     try {
       await navigator.share({
-        title: `位置情報共有: ${location.location_name || "共有位置"}`,
-        text: `${location.message || "位置情報を共有しています"}`,
+        title: `位置情報共有: ${location.title || "共有位置"}`,
+        text: `${location.description || "位置情報を共有しています"}`,
         url: window.location.href,
       });
     } catch (error) {
@@ -95,7 +95,7 @@ export default function SharedLocationView({
                 latitude: location.latitude,
                 longitude: location.longitude,
               },
-              name: location.location_name || "共有位置",
+              name: location.title || "共有位置",
               icon: "red",
             },
           ]}
@@ -108,7 +108,7 @@ export default function SharedLocationView({
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl">
-                {location.location_name || "共有された位置"}
+                {location.title || "共有された位置"}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 共有コード: {shareCode}
@@ -122,12 +122,12 @@ export default function SharedLocationView({
 
         <CardContent>
           <div className="space-y-4">
-            {location.message && (
+            {location.description && (
               <div className="bg-muted/50 p-3 rounded-md flex">
                 <MessageSquare className="h-5 w-5 mr-2 text-muted-foreground" />
                 <div>
                   <p className="font-medium text-sm">メッセージ</p>
-                  <p className="mt-1">{location.message}</p>
+                  <p className="mt-1">{location.description}</p>
                 </div>
               </div>
             )}

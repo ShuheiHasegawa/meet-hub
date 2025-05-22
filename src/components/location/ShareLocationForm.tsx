@@ -43,8 +43,8 @@ export default function ShareLocationForm() {
   const [formData, setFormData] = useState<CreateSharedLocationInput>({
     latitude: 0,
     longitude: 0,
-    location_name: "",
-    message: "",
+    title: "",
+    description: "",
     expiresInMinutes: 60, // デフォルト1時間
   });
 
@@ -106,8 +106,8 @@ export default function ShareLocationForm() {
         // フォームの内容をリセット（位置情報は保持）
         setFormData((prev) => ({
           ...prev,
-          location_name: "",
-          message: "",
+          title: "",
+          description: "",
           expiresInMinutes: 60,
         }));
       } else {
@@ -238,24 +238,24 @@ export default function ShareLocationForm() {
 
         {/* 場所の名前 */}
         <div className="space-y-2">
-          <Label htmlFor="location_name">場所の名前（任意）</Label>
+          <Label htmlFor="title">場所の名前（任意）</Label>
           <Input
-            id="location_name"
-            name="location_name"
+            id="title"
+            name="title"
             placeholder="待ち合わせ場所"
-            value={formData.location_name || ""}
+            value={formData.title || ""}
             onChange={handleChange}
           />
         </div>
 
         {/* メッセージ */}
         <div className="space-y-2">
-          <Label htmlFor="message">メッセージ（任意）</Label>
+          <Label htmlFor="description">メッセージ（任意）</Label>
           <Textarea
-            id="message"
-            name="message"
+            id="description"
+            name="description"
             placeholder="この辺で待っています"
-            value={formData.message || ""}
+            value={formData.description || ""}
             onChange={handleChange}
           />
         </div>

@@ -103,8 +103,8 @@ export interface CreateSharedLocationInput {
   accuracy?: number | null;
   heading?: number | null;
   speed?: number | null;
-  location_name?: string;
-  message?: string;
+  title?: string;
+  description?: string;
   // 有効期限（分）、デフォルト値をAPIで設定
   expiresInMinutes?: number;
 }
@@ -117,8 +117,8 @@ export interface UpdateSharedLocationInput {
   accuracy?: number | null;
   heading?: number | null;
   speed?: number | null;
-  location_name?: string;
-  message?: string;
+  title?: string;
+  description?: string;
   expires_at?: string;
 }
 

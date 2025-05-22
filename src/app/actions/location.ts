@@ -43,8 +43,8 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
       const heading = input.get('heading') ? parseFloat(input.get('heading') as string) : null;
       const speed = input.get('speed') ? parseFloat(input.get('speed') as string) : null;
       const expiresAt = input.get('expiresAt') as string || calculateExpiryDate(60);
-      const locationName = input.get('locationName') as string || null;
-      const message = input.get('message') as string || null;
+      const title = input.get('title') as string || null;
+      const description = input.get('description') as string || null;
       
       // 共有コードのバリデーション
       if (!validateShareCode(shareCode)) {
@@ -66,8 +66,8 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
           altitude,
           heading,
           speed,
-          location_name: locationName,
-          message,
+          title,
+          description,
           expires_at: expiresAt
         })
         .select()
@@ -112,8 +112,8 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
           altitude: input.altitude || null,
           heading: input.heading || null,
           speed: input.speed || null,
-          location_name: input.location_name || null,
-          message: input.message || null,
+          title: input.title || null,
+          description: input.description || null,
           expires_at: expiresAt
         })
         .select()

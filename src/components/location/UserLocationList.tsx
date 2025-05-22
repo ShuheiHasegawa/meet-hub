@@ -185,7 +185,7 @@ export default function UserLocationList() {
             <CardHeader className="pb-2 flex flex-row items-start justify-between">
               <div>
                 <CardTitle className="text-lg">
-                  {location.location_name || "名称未設定の場所"}
+                  {location.title || "名称未設定の場所"}
                 </CardTitle>
                 <div className="flex flex-wrap gap-2 mt-1">
                   <Badge variant={expired ? "outline" : "secondary"}>
@@ -204,10 +204,10 @@ export default function UserLocationList() {
                   {location.longitude.toFixed(6)}
                 </div>
 
-                {location.message && (
+                {location.description && (
                   <div>
                     <span className="text-muted-foreground">メッセージ:</span>{" "}
-                    {location.message}
+                    {location.description}
                   </div>
                 )}
 
@@ -243,7 +243,7 @@ export default function UserLocationList() {
                           latitude: location.latitude,
                           longitude: location.longitude,
                         },
-                        name: location.location_name || "共有位置",
+                        name: location.title || "共有位置",
                         icon: "red",
                       },
                     ]}
@@ -266,10 +266,7 @@ export default function UserLocationList() {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    shareLocation(
-                      location.share_code,
-                      location.location_name || ""
-                    )
+                    shareLocation(location.share_code, location.title || "")
                   }
                 >
                   <Share2 className="h-4 w-4 mr-1" />
