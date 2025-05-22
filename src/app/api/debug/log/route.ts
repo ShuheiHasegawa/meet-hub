@@ -37,11 +37,6 @@ export async function GET(request: NextRequest) {
       has_error: !!error,
       error_message: error ? error.message : null,
       
-      // 補足情報
-      is_uppercase: trimmedCode === trimmedCode.toUpperCase(),
-      is_lowercase: trimmedCode === trimmedCode.toLowerCase(),
-      has_mixed_case: trimmedCode !== trimmedCode.toUpperCase() && trimmedCode !== trimmedCode.toLowerCase(),
-      
       // 詳細なデータ（あれば）
       first_record: data && data.length > 0 ? {
         id: data[0].id,

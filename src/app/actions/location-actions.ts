@@ -203,76 +203,17 @@ export async function createSharedLocation(locationData: LocationCreate | Locati
  * 共有コードから位置情報を取得
  */
 export async function getSharedLocation(code: string) {
-  const supabase = createClient();
-
-  // 空白のみトリムし、大文字変換しない
-  const trimmedCode = code ? code.trim() : '';
-  console.log("検索する共有コード:", trimmedCode);
+  // 共通のユーティリティ関数を使用
+  const { success, data, error } = await import('./location-utils').then(module => 
+    module.fetchLocationByShareCode(code)
+  );
   
-  try {
-    // 単純なクエリでまず試行（JOINなし）
-    const { data, error } = await supabase
-      .from('locations')
-      .select('*')
-      .eq('share_code', trimmedCode)
-      .eq('is_active', true)
-      .single();
-    
-    console.log("検索結果:", { データ存在: !!data, エラー: !!error });
-    
-    if (error) {
-      console.error("共有位置情報取得エラー:", error);
-      
-      // 外部キーエラーの場合、別のアプローチを試す
-      if (error.code === 'PGRST200') {
-        // シンプルなRPC関数を作成していれば使用
-        /*
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_shared_location_by_code', { share_code_param: trimmedCode })
-          .single();
-        
-        if (!rpcError) {
-          return { success: true, location: rpcData, error: null };
-        }
-        */
-        
-        // SQL文を直接実行（最終手段）
-        console.log("代替クエリを試行中...");
-        const { data: rawData, error: rawError } = await supabase
-          .from('locations')
-          .select(`
-            id, share_code, latitude, longitude, 
-            altitude, accuracy, heading, 
-            title, description, expires_at, is_active, 
-            created_at, updated_at
-          `)
-          .eq('share_code', trimmedCode)
-          .eq('is_active', true)
-          .single();
-        
-        console.log("代替クエリ結果:", { データ存在: !!rawData, エラー: !!rawError });
-        
-        if (!rawError) {
-          return { success: true, location: rawData, error: null };
-        }
-      }
-      
-      return { 
-        success: false, 
-        location: null, 
-        error: "指定された共有コードの位置情報が見つかりませんでした" 
-      };
-    }
-    
-    return { success: true, location: data, error: null };
-  } catch (error) {
-    console.error("共有位置情報取得処理エラー:", error);
-    return { 
-      success: false, 
-      location: null, 
-      error: `位置情報の取得中にエラーが発生しました: ${(error as Error).message}` 
-    };
-  }
+  // ユーティリティの結果を期待する形式に変換
+  return {
+    success,
+    location: data,
+    error
+  };
 }
 
 /**
