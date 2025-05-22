@@ -11,6 +11,8 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
+// 必要な型をインポート
+import type { ShareLocationResponse, ShareLocationErrorResponse } from "@/types/location";
 
 // テスト設定
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
