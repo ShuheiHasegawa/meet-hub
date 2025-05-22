@@ -205,16 +205,20 @@ export async function createSharedLocation(locationData: LocationCreate | Locati
 export async function getSharedLocation(code: string) {
   const supabase = createClient();
 
-  console.log("Fetching shared location:", code);
+  // 空白のみトリムし、大文字変換しない
+  const trimmedCode = code ? code.trim() : '';
+  console.log("検索する共有コード:", trimmedCode);
   
   try {
     // 単純なクエリでまず試行（JOINなし）
     const { data, error } = await supabase
       .from('locations')
       .select('*')
-      .eq('share_code', code)
+      .eq('share_code', trimmedCode)
       .eq('is_active', true)
       .single();
+    
+    console.log("検索結果:", { データ存在: !!data, エラー: !!error });
     
     if (error) {
       console.error("共有位置情報取得エラー:", error);
@@ -224,7 +228,7 @@ export async function getSharedLocation(code: string) {
         // シンプルなRPC関数を作成していれば使用
         /*
         const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_shared_location_by_code', { share_code_param: code })
+          .rpc('get_shared_location_by_code', { share_code_param: trimmedCode })
           .single();
         
         if (!rpcError) {
@@ -233,6 +237,7 @@ export async function getSharedLocation(code: string) {
         */
         
         // SQL文を直接実行（最終手段）
+        console.log("代替クエリを試行中...");
         const { data: rawData, error: rawError } = await supabase
           .from('locations')
           .select(`
@@ -241,9 +246,11 @@ export async function getSharedLocation(code: string) {
             title, description, expires_at, is_active, 
             created_at, updated_at
           `)
-          .eq('share_code', code)
+          .eq('share_code', trimmedCode)
           .eq('is_active', true)
           .single();
+        
+        console.log("代替クエリ結果:", { データ存在: !!rawData, エラー: !!rawError });
         
         if (!rawError) {
           return { success: true, location: rawData, error: null };

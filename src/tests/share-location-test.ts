@@ -254,28 +254,51 @@ async function runTests() {
 runTests().catch(console.error);
 
 // 修正案
-export async function getLocationByShareCode(shareCode: string) {
+export async function getLocationByShareCode(shareCode: string): Promise<ShareLocationResponse | ShareLocationErrorResponse> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   
-  // 共有コードの正規化（トリムして大文字に変換）
-  const normalizedShareCode = shareCode.trim().toUpperCase();
+  // 空白だけトリムし、大文字変換はしない
+  const trimmedShareCode = shareCode.trim();
+  console.log("検索する共有コード:", trimmedShareCode);
   
   try {
-    // シンプルに共有コードだけで検索
+    // 完全一致検索（大文字小文字を区別）
     const { data, error } = await supabase
       .from('locations')
       .select('*')
-      .eq('share_code', normalizedShareCode)
-      .single();  // 単一レコードを取得
+      .eq('share_code', trimmedShareCode);
     
-    console.log("Query result:", data, error);
+    console.log("検索結果:", { データ数: data?.length, エラー: error ? true : false });
     
     if (error) {
-      return { success: false, error: error.message };
+      console.error("共有コード検索エラー:", error);
+      return { 
+        success: false, 
+        error: `位置情報の取得に失敗しました: ${error.message}` 
+      };
     }
     
-    return { success: true, data };
+    if (!data || data.length === 0) {
+      console.warn("共有コードに該当する位置情報なし:", trimmedShareCode);
+      return {
+        success: false,
+        error: "指定された共有コードの位置情報が見つかりませんでした"
+      };
+    }
+    
+    // 最初のデータを使用
+    const locationData = data[0];
+    console.log("取得した位置情報:", { id: locationData.id, share_code: locationData.share_code });
+    
+    return { 
+      success: true, 
+      data: locationData
+    };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    console.error("位置情報取得中の予期せぬエラー:", error);
+    return {
+      success: false,
+      error: `位置情報取得中にエラーが発生しました: ${(error as Error).message}`
+    };
   }
 } 

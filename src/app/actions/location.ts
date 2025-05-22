@@ -151,23 +151,22 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
 export async function getLocationByShareCode(shareCode: string): Promise<ShareLocationResponse | ShareLocationErrorResponse> {
   const supabase = createClient();
   
-  // 共有コードの正規化（トリムして大文字に変換）
-  const normalizedShareCode = shareCode.trim().toUpperCase();
-  console.log("Fetching location with normalized share code:", normalizedShareCode);
+  // 空白のみトリムし、大文字変換はしない（大文字小文字を区別）
+  const trimmedShareCode = shareCode.trim();
+  console.log("検索する共有コード:", trimmedShareCode);
   
   try {
-    // 大文字・小文字を区別せずに検索
+    // 完全一致検索（大文字小文字を区別）
     const { data, error } = await supabase
       .from('locations')
       .select('*')
-      .ilike('share_code', normalizedShareCode);
+      .eq('share_code', trimmedShareCode);
     
     // より詳細なデバッグ情報
-    console.log("Raw query result:", data);
-    console.log("Query error:", error);
+    console.log("検索結果:", { データ数: data?.length, エラー: error ? true : false });
     
     if (error) {
-      console.error("位置情報の取得エラー:", error);
+      console.error("共有コード検索エラー:", error);
       return { 
         success: false, 
         error: `位置情報の取得に失敗しました: ${error.message}` 
@@ -175,7 +174,7 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
     }
     
     if (!data || data.length === 0) {
-      console.error("位置情報が見つかりませんでした - 共有コード:", normalizedShareCode);
+      console.error("位置情報が見つかりませんでした - 共有コード:", trimmedShareCode);
       return {
         success: false,
         error: "指定された共有コードの位置情報が見つかりませんでした"
@@ -184,8 +183,7 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
     
     // 単一のレコードを取得
     const locationData = data[0];
-    
-    // データ処理の部分はそのまま...
+    console.log("取得した位置情報:", { id: locationData.id, share_code: locationData.share_code });
     
     return { 
       success: true, 
