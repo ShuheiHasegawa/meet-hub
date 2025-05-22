@@ -255,7 +255,7 @@ runTests().catch(console.error);
 
 // 修正案
 export async function getLocationByShareCode(shareCode: string) {
-  const supabase = createClient();
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   
   // 共有コードの正規化（トリムして大文字に変換）
   const normalizedShareCode = shareCode.trim().toUpperCase();
