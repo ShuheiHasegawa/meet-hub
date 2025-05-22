@@ -20,12 +20,13 @@ export async function fetchLocationByShareCode(shareCode: string) {
   
   try {
     // 明示的にカラムを指定し、外部キー関連を避ける
+    // エラーとなったカラムを削除（存在しないため）
     const { data, error } = await supabase
       .from('locations')
       .select(`
         id, share_code, latitude, longitude, 
-        altitude, accuracy, heading, speed,
-        title, description, location_name, message,
+        altitude, accuracy, heading,
+        title, description, 
         is_active, expires_at, user_id,
         created_at, updated_at
       `)
@@ -50,11 +51,24 @@ export async function fetchLocationByShareCode(shareCode: string) {
       };
     }
     
+    // 状態をログ出力
+    console.log("[共通] 共有状態:", { 
+      id: data[0].id, 
+      active: data[0].is_active,
+      expires: data[0].expires_at,
+      now: new Date().toISOString()
+    });
+    
     // 最初のレコードを返す
     console.log("[共通] 位置情報を取得:", data[0].id);
     return { 
       success: true, 
-      data: data[0], 
+      data: {
+        ...data[0],
+        // 型の互換性を確保
+        title: data[0].title,
+        description: data[0].description
+      }, 
       error: null 
     };
   } catch (error) {

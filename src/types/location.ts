@@ -87,8 +87,9 @@ export interface SharedLocation extends GeoPosition {
   id: string;
   user_id: string;
   share_code: string;
-  location_name?: string | null;
-  message?: string | null;
+  title?: string | null;
+  description?: string | null;
+  is_active?: boolean; // アクティブ状態
   expires_at: string; // ISO形式の日時文字列
   created_at: string;
   updated_at: string;
