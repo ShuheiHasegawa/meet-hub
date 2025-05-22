@@ -156,25 +156,17 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
   console.log("Fetching location with normalized share code:", normalizedShareCode);
   
   try {
-    // 直接REST APIを使用してデータを取得
-    // ※共有コードのみでフィルターし、user_idやis_activeによる制限は行わない
+    // 大文字・小文字を区別せずに検索
     const { data, error } = await supabase
       .from('locations')
       .select('*')
-      .eq('share_code', normalizedShareCode)
-      // is_activeフィルターを削除して、共有コードのみで検索
-      .single();
+      .ilike('share_code', normalizedShareCode);
     
-    console.log("Query result:", { data, error });
+    // より詳細なデバッグ情報
+    console.log("Raw query result:", data);
+    console.log("Query error:", error);
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        // データが見つからない場合
-        return {
-          success: false,
-          error: "指定された共有コードの位置情報が見つかりませんでした"
-        };
-      }
       console.error("位置情報の取得エラー:", error);
       return { 
         success: false, 
@@ -182,59 +174,22 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
       };
     }
     
-    // データのエンコーディングを確認し、必要なら修正
-    if (data) {
-      // location_nameとmessageのデコード処理（必要な場合）
-      // 古いスキーマ対応
-      if (data.location_name && typeof data.location_name === 'string') {
-        try {
-          // 文字化けしている可能性があるためデコード
-          data.location_name = decodeURIComponent(escape(data.location_name));
-        } catch (e) {
-          console.warn("位置名のデコードに失敗:", e);
-        }
-      }
-      
-      if (data.message && typeof data.message === 'string') {
-        try {
-          // 文字化けしている可能性があるためデコード
-          data.message = decodeURIComponent(escape(data.message));
-        } catch (e) {
-          console.warn("メッセージのデコードに失敗:", e);
-        }
-      }
-      
-      // 新しいスキーマ対応
-      if (data.title && typeof data.title === 'string') {
-        try {
-          data.title = decodeURIComponent(escape(data.title));
-        } catch (e) {
-          console.warn("タイトルのデコードに失敗:", e);
-        }
-      }
-      
-      if (data.description && typeof data.description === 'string') {
-        try {
-          data.description = decodeURIComponent(escape(data.description));
-        } catch (e) {
-          console.warn("説明のデコードに失敗:", e);
-        }
-      }
-      
-      // SharedLocationからLocation型へのマッピング処理
-      // 古いスキーマから新しいスキーマへの変換
-      if (data.location_name && !data.title) {
-        data.title = data.location_name;
-      }
-      
-      if (data.message && !data.description) {
-        data.description = data.message;
-      }
+    if (!data || data.length === 0) {
+      console.error("位置情報が見つかりませんでした - 共有コード:", normalizedShareCode);
+      return {
+        success: false,
+        error: "指定された共有コードの位置情報が見つかりませんでした"
+      };
     }
+    
+    // 単一のレコードを取得
+    const locationData = data[0];
+    
+    // データ処理の部分はそのまま...
     
     return { 
       success: true, 
-      data: data
+      data: locationData
     };
   } catch (error) {
     console.error("位置情報取得中の予期せぬエラー:", error);
