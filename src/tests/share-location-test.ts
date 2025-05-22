@@ -251,4 +251,31 @@ async function runTests() {
 }
 
 // テスト実行
-runTests().catch(console.error); 
+runTests().catch(console.error);
+
+// 修正案
+export async function getLocationByShareCode(shareCode: string) {
+  const supabase = createClient();
+  
+  // 共有コードの正規化（トリムして大文字に変換）
+  const normalizedShareCode = shareCode.trim().toUpperCase();
+  
+  try {
+    // シンプルに共有コードだけで検索
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('share_code', normalizedShareCode)
+      .single();  // 単一レコードを取得
+    
+    console.log("Query result:", data, error);
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+} 
