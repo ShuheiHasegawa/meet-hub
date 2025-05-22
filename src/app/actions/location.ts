@@ -153,7 +153,14 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
   
   // 空白のみトリムし、大文字変換はしない（大文字小文字を区別）
   const trimmedShareCode = shareCode.trim();
-  console.log("検索する共有コード:", trimmedShareCode);
+  console.log("【DEBUG】検索する共有コード:", trimmedShareCode);
+  console.log("【DEBUG】大文字小文字情報:", {
+    is_uppercase: trimmedShareCode === trimmedShareCode.toUpperCase(),
+    is_lowercase: trimmedShareCode === trimmedShareCode.toLowerCase(),
+    has_mixed_case: trimmedShareCode !== trimmedShareCode.toUpperCase() && trimmedShareCode !== trimmedShareCode.toLowerCase(),
+    original_code: shareCode,
+    trimmed_code: trimmedShareCode
+  });
   
   try {
     // 完全一致検索（大文字小文字を区別）
@@ -163,10 +170,14 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
       .eq('share_code', trimmedShareCode);
     
     // より詳細なデバッグ情報
-    console.log("検索結果:", { データ数: data?.length, エラー: error ? true : false });
+    console.log("【DEBUG】検索結果:", { 
+      データ数: data?.length, 
+      エラー: error ? true : false,
+      エラー詳細: error ? JSON.stringify(error) : null
+    });
     
     if (error) {
-      console.error("共有コード検索エラー:", error);
+      console.error("【DEBUG】共有コード検索エラー:", error);
       return { 
         success: false, 
         error: `位置情報の取得に失敗しました: ${error.message}` 
@@ -174,7 +185,21 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
     }
     
     if (!data || data.length === 0) {
-      console.error("位置情報が見つかりませんでした - 共有コード:", trimmedShareCode);
+      console.error("【DEBUG】位置情報が見つかりませんでした - 共有コード:", trimmedShareCode);
+      
+      // 大文字変換して再検索（デバッグのみ）
+      const uppercaseCode = trimmedShareCode.toUpperCase();
+      console.log("【DEBUG】大文字変換して再検索:", uppercaseCode);
+      const { data: upperData } = await supabase
+        .from('locations')
+        .select('*')
+        .eq('share_code', uppercaseCode);
+      
+      console.log("【DEBUG】大文字検索結果:", { 
+        データ数: upperData?.length,
+        見つかった: upperData && upperData.length > 0 ? "あり" : "なし" 
+      });
+      
       return {
         success: false,
         error: "指定された共有コードの位置情報が見つかりませんでした"
@@ -183,14 +208,19 @@ export async function getLocationByShareCode(shareCode: string): Promise<ShareLo
     
     // 単一のレコードを取得
     const locationData = data[0];
-    console.log("取得した位置情報:", { id: locationData.id, share_code: locationData.share_code });
+    console.log("【DEBUG】取得した位置情報:", { 
+      id: locationData.id, 
+      share_code: locationData.share_code,
+      is_active: locationData.is_active,
+      title: locationData.title
+    });
     
     return { 
       success: true, 
       data: locationData
     };
   } catch (error) {
-    console.error("位置情報取得中の予期せぬエラー:", error);
+    console.error("【DEBUG】位置情報取得中の予期せぬエラー:", error);
     return {
       success: false,
       error: `位置情報取得中にエラーが発生しました: ${(error as Error).message}`

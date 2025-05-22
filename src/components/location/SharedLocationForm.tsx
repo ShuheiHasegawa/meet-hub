@@ -24,10 +24,10 @@ export default function SharedLocationForm({
     e.preventDefault();
     console.log("Submitting share code:", shareCode);
 
-    // 共有コードを整形（トリムして大文字に変換）
-    const formattedShareCode = shareCode.trim().toUpperCase();
+    // 共有コードを整形（トリムのみ、大文字変換しない）
+    const trimmedShareCode = shareCode.trim();
 
-    if (!formattedShareCode) {
+    if (!trimmedShareCode) {
       toast.error("共有コードを入力してください");
       return;
     }
@@ -36,8 +36,8 @@ export default function SharedLocationForm({
 
     try {
       // 共有コードで位置情報を検索
-      console.log(`[DEBUG] 共有コード検索開始: "${formattedShareCode}"`);
-      const response = await getLocationByShareCode(formattedShareCode);
+      console.log(`[DEBUG] 共有コード検索開始: "${trimmedShareCode}"`);
+      const response = await getLocationByShareCode(trimmedShareCode);
       console.log(
         "[DEBUG] APIレスポンス完全なオブジェクト:",
         JSON.stringify(response)
@@ -90,7 +90,7 @@ export default function SharedLocationForm({
       }
 
       // データが見つかった場合の処理
-      toast.success(`${formattedShareCode}の位置情報を表示します`);
+      toast.success(`${trimmedShareCode}の位置情報を表示します`);
       console.log("[DEBUG] 位置情報の表示処理開始");
 
       // コールバック関数があれば呼び出す
