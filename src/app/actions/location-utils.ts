@@ -14,9 +14,10 @@ export async function fetchLocationByShareCode(shareCode: string) {
   
   const supabase = createClient();
   
-  // 空白のみトリムし、大文字小文字はそのまま
-  const trimmedCode = shareCode.trim();
+  // 空白のみトリムし、大文字に統一して検索
+  const trimmedCode = shareCode.trim().toUpperCase();
   console.log("[共通] 位置情報検索:", trimmedCode);
+  console.log("[共通] 元の入力:", shareCode);
   console.log("[共通] Supabaseクライアント設定確認:", {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT_SET',
     key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT_SET',
@@ -57,6 +58,19 @@ export async function fetchLocationByShareCode(shareCode: string) {
     
     if (!data || data.length === 0) {
       console.warn("[共通] 位置情報が見つかりません:", trimmedCode);
+      
+      // デバッグ用: 全体的な確認クエリ
+      const { data: allData, error: allError } = await supabase
+        .from('locations')
+        .select('share_code, is_active, expires_at')
+        .limit(10);
+      
+      console.log("[共通] デバッグ: 最近の位置情報:", {
+        totalCount: allData ? allData.length : 0,
+        sampleCodes: allData ? allData.map(d => d.share_code) : [],
+        searchCode: trimmedCode
+      });
+      
       return { 
         success: false, 
         data: null, 

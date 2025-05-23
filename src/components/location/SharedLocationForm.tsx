@@ -29,8 +29,10 @@ export default function SharedLocationForm({
       URL: typeof window !== "undefined" ? window.location.href : "server",
     });
 
-    // 共有コードを整形（トリムのみ、大文字変換しない）
-    const trimmedShareCode = shareCode.trim();
+    // 共有コードを整形（トリムして大文字に統一）
+    const trimmedShareCode = shareCode.trim().toUpperCase();
+    console.log("[DEBUG] 入力された共有コード:", shareCode);
+    console.log("[DEBUG] 整形後の共有コード:", trimmedShareCode);
 
     if (!trimmedShareCode) {
       toast.error("共有コードを入力してください");
@@ -135,7 +137,7 @@ export default function SharedLocationForm({
         <Input
           placeholder="共有コードを入力 (例: ABC123)"
           value={shareCode}
-          onChange={(e) => setShareCode(e.target.value)}
+          onChange={(e) => setShareCode(e.target.value.toUpperCase())}
           disabled={isLoading}
           className="w-full"
           maxLength={10}
