@@ -96,7 +96,19 @@ export async function fetchLocationByShareCode(shareCode: string) {
       return { 
         success: false, 
         data: null, 
-        error: "指定された共有コードの位置情報が見つかりませんでした" 
+        error: "指定された共有コードの位置情報が見つかりませんでした",
+        // デバッグ情報を追加
+        debug: {
+          searchCode: trimmedCode,
+          originalInput: shareCode,
+          timestamp: new Date().toISOString(),
+          hasUser: user ? true : false,
+          userEmail: user?.email || 'なし',
+          queryResult: 'not_found',
+          sampleCodes: allData ? allData.map(d => d.share_code) : [],
+          totalRecords: allData ? allData.length : 0,
+          authError: authError?.message || null
+        }
       };
     }
     
@@ -118,14 +130,36 @@ export async function fetchLocationByShareCode(shareCode: string) {
         title: data[0].title,
         description: data[0].description
       }, 
-      error: null 
+      error: null,
+      // デバッグ情報を追加
+      debug: {
+        searchCode: trimmedCode,
+        originalInput: shareCode,
+        timestamp: new Date().toISOString(),
+        hasUser: user ? true : false,
+        userEmail: user?.email || 'なし',
+        queryResult: 'success',
+        recordCount: data.length,
+        authError: authError?.message || null
+      }
     };
   } catch (error) {
     console.error("[共通] 予期せぬエラー:", error);
     return { 
       success: false, 
       data: null, 
-      error: `位置情報の取得中にエラーが発生しました: ${(error as Error).message}` 
+      error: `位置情報の取得中にエラーが発生しました: ${(error as Error).message}`,
+      // デバッグ情報を追加
+      debug: {
+        searchCode: trimmedCode,
+        originalInput: shareCode,
+        timestamp: new Date().toISOString(),
+        hasUser: user ? true : false,
+        userEmail: user?.email || 'なし',
+        queryResult: 'error',
+        errorMessage: (error as Error).message,
+        authError: authError?.message || null
+      }
     };
   }
 } 
