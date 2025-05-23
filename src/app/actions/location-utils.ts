@@ -17,10 +17,16 @@ export async function fetchLocationByShareCode(shareCode: string) {
   // 空白のみトリムし、大文字小文字はそのまま
   const trimmedCode = shareCode.trim();
   console.log("[共通] 位置情報検索:", trimmedCode);
+  console.log("[共通] Supabaseクライアント設定確認:", {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT_SET',
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT_SET',
+    timestamp: new Date().toISOString()
+  });
   
   try {
     // 明示的にカラムを指定し、外部キー関連を避ける
     // エラーとなったカラムを削除（存在しないため）
+    console.log("[共通] クエリ実行開始:", { share_code: trimmedCode });
     const { data, error } = await supabase
       .from('locations')
       .select(`
@@ -32,6 +38,13 @@ export async function fetchLocationByShareCode(shareCode: string) {
       `)
       .eq('share_code', trimmedCode)
       .limit(1);
+    
+    console.log("[共通] クエリ実行結果:", {
+      hasData: data ? data.length : 0,
+      hasError: error ? true : false,
+      errorMessage: error?.message || null,
+      errorCode: error?.code || null
+    });
     
     if (error) {
       console.error("[共通] 位置情報検索エラー:", error);
