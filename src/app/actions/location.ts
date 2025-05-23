@@ -149,22 +149,27 @@ export async function shareLocation(input: CreateSharedLocationInput | FormData)
  * 共有コードから位置情報を取得する
  */
 export async function getLocationByShareCode(shareCode: string): Promise<ShareLocationResponse | ShareLocationErrorResponse> {
-  // 共通のユーティリティ関数を使用
-  const result = await import('./location-utils').then(module => 
-    module.fetchLocationByShareCode(shareCode)
-  );
+  console.log(`[ACTION] getLocationByShareCode呼び出し: "${shareCode}"`);
   
-  // 型の互換性を保つ処理
-  if (result.success) {
-    return {
-      success: true,
-      data: result.data,
-      share_code: result.data?.share_code
-    } as ShareLocationResponse;
-  } else {
+  try {
+    // 共通のユーティリティ関数を使用
+    const result = await import('./location-utils').then(module => 
+      module.fetchLocationByShareCode(shareCode)
+    );
+    
+    console.log(`[ACTION] location-utilsの結果:`, {
+      success: result.success,
+      hasData: result.data ? true : false,
+      error: result.error
+    });
+    
+    // location-utilsの結果をそのまま返す（応答形式は既に統一されている）
+    return result as ShareLocationResponse | ShareLocationErrorResponse;
+  } catch (error) {
+    console.error(`[ACTION] 予期せぬエラー:`, error);
     return {
       success: false,
-      error: result.error || "不明なエラー"
+      error: `位置情報の取得中にエラーが発生しました: ${(error as Error).message}`
     } as ShareLocationErrorResponse;
   }
 }

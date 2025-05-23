@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import SharedLocationView from "@/components/share/SharedLocationView";
+import SharedLocationView from "@/components/location/SharedLocationView";
 import { ensureLocationsTable } from "@/app/actions/setup-locations";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase/server";
@@ -171,7 +171,7 @@ export default async function SharedLocationPage({
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">共有位置情報</h1>
 
-        <SharedLocationView location={locationForView} />
+        <SharedLocationView location={locationForView} shareCode={code} />
       </div>
     );
   } catch (error) {

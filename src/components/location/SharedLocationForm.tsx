@@ -23,6 +23,11 @@ export default function SharedLocationForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Submitting share code:", shareCode);
+    console.log("[ENV] 環境情報:", {
+      NODE_ENV: process.env.NODE_ENV,
+      HOST: typeof window !== "undefined" ? window.location.host : "server",
+      URL: typeof window !== "undefined" ? window.location.href : "server",
+    });
 
     // 共有コードを整形（トリムのみ、大文字変換しない）
     const trimmedShareCode = shareCode.trim();
@@ -37,10 +42,12 @@ export default function SharedLocationForm({
     try {
       // 共有コードで位置情報を検索
       console.log(`[DEBUG] 共有コード検索開始: "${trimmedShareCode}"`);
+      console.log(`[DEBUG] API呼び出し前の時刻: ${new Date().toISOString()}`);
       const response = await getLocationByShareCode(trimmedShareCode);
+      console.log(`[DEBUG] API呼び出し後の時刻: ${new Date().toISOString()}`);
       console.log(
         "[DEBUG] APIレスポンス完全なオブジェクト:",
-        JSON.stringify(response)
+        JSON.stringify(response, null, 2)
       );
 
       // レスポンスがnullの場合（データが見つからない）
