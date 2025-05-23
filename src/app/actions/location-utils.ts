@@ -14,6 +14,15 @@ export async function fetchLocationByShareCode(shareCode: string) {
   
   const supabase = createClient();
   
+  // 認証状態を確認
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log("[共通] 認証状態:", {
+    hasUser: user ? true : false,
+    userId: user?.id || 'なし',
+    email: user?.email || 'なし',
+    authError: authError?.message || null
+  });
+  
   // 空白のみトリム
   const trimmedCode = shareCode.trim();
   console.log("[共通] 位置情報検索:", trimmedCode);
@@ -25,6 +34,17 @@ export async function fetchLocationByShareCode(shareCode: string) {
   });
   
   try {
+    // Supabase接続テスト
+    const { data: testData, error: testError } = await supabase
+      .from('locations')
+      .select('count', { count: 'exact', head: true });
+    
+    console.log("[共通] データベース接続テスト:", {
+      success: !testError,
+      count: testData || 0,
+      error: testError?.message || null
+    });
+    
     // 明示的にカラムを指定し、外部キー関連を避ける
     // エラーとなったカラムを削除（存在しないため）
     console.log("[共通] クエリ実行開始:", { share_code: trimmedCode });
