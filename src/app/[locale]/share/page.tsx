@@ -7,6 +7,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import SharedLocationForm from "@/components/location/SharedLocationForm";
 import UserLocationList from "@/components/location/UserLocationList";
+import DebugLocationsList from "@/components/debug/DebugLocationsList";
 
 interface SharePageProps {
   params: {
@@ -99,38 +100,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
             {/* デバッグ情報 - Vercel環境でも表示 */}
             {debugLocations && (
-              <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <h3 className="text-sm font-semibold mb-2">
-                  デバッグ: 最近の共有コード（コピーして使用可能）
-                </h3>
-                <div className="text-xs space-y-1">
-                  {debugLocations.map((loc, index) => (
-                    <div key={index} className="flex justify-between">
-                      <button
-                        className="font-mono text-left hover:bg-gray-200 dark:hover:bg-gray-700 px-2 py-1 rounded"
-                        onClick={() => {
-                          navigator.clipboard.writeText(loc.share_code);
-                          alert(
-                            `共有コード "${loc.share_code}" をコピーしました`
-                          );
-                        }}
-                      >
-                        {loc.share_code}
-                      </button>
-                      <span
-                        className={
-                          loc.is_active ? "text-green-600" : "text-red-600"
-                        }
-                      >
-                        {loc.is_active ? "有効" : "無効"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  ↑ 共有コードをクリックするとコピーされます
-                </p>
-              </div>
+              <DebugLocationsList locations={debugLocations} />
             )}
           </div>
         </div>
