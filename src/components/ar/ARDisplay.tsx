@@ -22,6 +22,22 @@ export default function ARDisplay() {
   );
   const [targetName, setTargetName] = useState("待ち合わせ場所");
 
+  // コンポーネント初期化時に位置情報を取得
+  useEffect(() => {
+    console.log("[ARDisplay] コンポーネント初期化 - 位置情報取得を開始");
+    getCurrentPosition();
+  }, [getCurrentPosition]);
+
+  // 位置情報取得状況をログ出力
+  useEffect(() => {
+    console.log("[ARDisplay] 位置情報状況:", {
+      loading: positionLoading,
+      hasPosition: !!currentPosition,
+      error: positionError,
+      geolocationSupported: !!navigator.geolocation,
+    });
+  }, [positionLoading, currentPosition, positionError]);
+
   // ダミーデータの生成（デモ用）
   // 実際のアプリでは共有コードなどから取得した実際の位置情報を使用する
   useEffect(() => {
@@ -49,7 +65,21 @@ export default function ARDisplay() {
     return (
       <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300">
         <h3 className="font-bold mb-2">位置情報の取得に失敗しました</h3>
-        <p>{positionError}</p>
+        <p className="mb-3">{positionError}</p>
+
+        {/* 詳細なガイダンス */}
+        <div className="text-sm mb-4 space-y-2">
+          <p>
+            <strong>解決方法:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>ブラウザのアドレスバーの🔒マークをクリック</li>
+            <li>位置情報を「許可」に設定</li>
+            <li>ページを再読み込み</li>
+            <li>HTTPSサイトでアクセスしているか確認</li>
+          </ul>
+        </div>
+
         <Button
           className="mt-4"
           variant="outline"
