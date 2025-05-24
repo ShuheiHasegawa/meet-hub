@@ -159,13 +159,13 @@ export default function ARView({
 
   return (
     <div
-      className="relative w-full h-[70vh] overflow-hidden bg-black rounded-lg"
+      className="relative w-full h-[70vh] overflow-hidden bg-black rounded-lg ar-container"
       ref={containerRef}
     >
       {/* カメラビュー */}
       <video
         ref={videoRef}
-        className="absolute w-full h-full object-cover"
+        className="absolute w-full h-full object-cover ar-container"
         playsInline
         autoPlay
         muted
@@ -173,50 +173,108 @@ export default function ARView({
 
       {/* ペルミッション取得ボタン */}
       {!isInitialized && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-          <p className="text-white mb-4">
-            カメラと方位情報へのアクセス許可が必要です
-          </p>
-          <Button onClick={startAR} className="bg-primary hover:bg-primary/90">
-            ARモードを開始
-          </Button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 ar-container">
+          <div className="text-center space-y-4 ar-float">
+            <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center mb-4 ar-glow">
+              <MapPin className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-white text-lg font-semibold">AR位置ガイド</h3>
+            <p className="text-white/80 text-sm max-w-xs">
+              カメラと方位情報へのアクセス許可が必要です
+            </p>
+            <Button
+              onClick={startAR}
+              className="bg-primary hover:bg-primary/90 px-8 py-3 text-base font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              ARモードを開始
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* ターゲットマーカー */}
+      {/* ターゲットマーカー - 洗練されたデザイン */}
       {isInitialized && targetPosition && currentPosition && (
         <div
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
+          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 ar-container"
           style={{
             top: targetStyle.top,
             left: targetStyle.left,
           }}
         >
-          <div className="flex flex-col items-center">
-            {getDirectionIndicator()}
-            <div className="bg-primary-600/80 p-2 rounded-full shadow-glow animate-pulse">
-              <MapPin className="h-10 w-10 text-white" />
-            </div>
-            <div className="bg-black/70 mt-2 px-3 py-1 rounded-full text-white text-sm">
-              {targetName}
-            </div>
-            {distance !== null && (
-              <div className="bg-black/70 mt-1 px-3 py-1 rounded-full text-white text-xs">
-                {formatDistance(distance)}
+          <div className="flex flex-col items-center space-y-2">
+            {/* 方向矢印（画面外の場合） */}
+            {getDirectionIndicator() && (
+              <div className="bg-white/90 ar-backdrop p-2 rounded-full shadow-lg animate-bounce">
+                {getDirectionIndicator()}
               </div>
             )}
+
+            {/* メインマーカー */}
+            <div className="relative ar-marker">
+              {/* パルス効果のアウターリング */}
+              <div className="absolute inset-0 bg-primary/30 rounded-full ar-pulse-ring"></div>
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse scale-125"></div>
+
+              {/* メインマーカー */}
+              <div className="relative bg-gradient-to-br from-primary to-primary-600 p-3 rounded-full shadow-2xl border-4 border-white/50 ar-backdrop ar-glow">
+                <MapPin className="h-8 w-8 text-white drop-shadow-lg" />
+              </div>
+            </div>
+
+            {/* 情報パネル */}
+            <div className="bg-black/80 ar-backdrop rounded-2xl px-4 py-2 shadow-2xl border border-white/10 min-w-[120px]">
+              <div className="text-center">
+                <div className="text-white font-semibold text-sm leading-tight truncate max-w-[100px]">
+                  {targetName}
+                </div>
+                {distance !== null && (
+                  <div className="text-primary-200 text-xs mt-1 font-medium tabular-nums">
+                    {formatDistance(distance)}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* コンパス表示 */}
+      {/* スタイリッシュなコンパス表示 */}
       {isInitialized && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/80 px-3 py-1 rounded-full">
-          <div className="flex items-center text-white">
-            <Compass className="h-5 w-5 mr-2" />
-            {compassHeading !== null
-              ? `${Math.round(compassHeading)}°`
-              : "コンパス情報がありません"}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 ar-container">
+          <div className="bg-black/80 ar-backdrop rounded-full px-4 py-2 shadow-xl border border-white/10">
+            <div className="flex items-center text-white space-x-2">
+              <div className="relative">
+                <Compass
+                  className="h-5 w-5 text-primary-300"
+                  style={{
+                    transform:
+                      compassHeading !== null
+                        ? `rotate(${compassHeading}deg)`
+                        : "none",
+                    transition: "transform 0.3s ease-out",
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium tabular-nums">
+                {compassHeading !== null
+                  ? `${Math.round(compassHeading)}°`
+                  : "--°"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AR情報オーバーレイ */}
+      {isInitialized && (
+        <div className="absolute top-4 left-4 ar-container">
+          <div className="bg-black/60 ar-backdrop rounded-xl px-3 py-2 border border-white/10">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-white text-xs font-medium tracking-wide">
+                AR ACTIVE
+              </span>
+            </div>
           </div>
         </div>
       )}
