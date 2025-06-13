@@ -41,7 +41,7 @@ export default function SharedLocationForm({
     }
 
     setIsLoading(true);
-    setDebugInfo(null); // デバッグ情報をリセット
+    setDebugInfo(null);
 
     try {
       // 共有コードで位置情報を検索
@@ -148,11 +148,18 @@ ${
         return;
       }
 
-      // データが見つかった場合の処理
+      // データが見つかった場合、共有コードページにリダイレクト
       toast.success(`${trimmedShareCode}の位置情報を表示します`);
-      console.log("[DEBUG] 位置情報の表示処理開始");
+      console.log("[DEBUG] 共有コードページにリダイレクト");
 
-      // コールバック関数があれば呼び出す
+      // 現在のロケールを取得
+      const currentPath = window.location.pathname;
+      const locale = currentPath.split('/')[1] || 'ja';
+      
+      // 共有コードページにリダイレクト（AR機能付きページ）
+      router.push(`/${locale}/share/${trimmedShareCode}`);
+
+      // コールバック関数があれば呼び出す（マップ表示用など）
       if (onLocationFound) {
         try {
           const geoPosition: GeoPosition = {
@@ -170,8 +177,6 @@ ${
           console.error("[ERROR] コールバック実行エラー:", callbackError);
           toast.error("位置情報の表示処理に失敗しました");
         }
-      } else {
-        console.log("[DEBUG] コールバック関数がありません");
       }
     } catch (error) {
       console.error("[ERROR] 位置情報の取得エラー:", error);

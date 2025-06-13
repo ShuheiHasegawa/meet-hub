@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAR } from "@/hooks/ar/useAR";
 import { GeoPosition } from "@/types/location";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, Compass, MapPin } from "lucide-react";
+import { ArrowDown, ArrowUp, Compass, MapPin, Target, Flag } from "lucide-react";
 
 interface ARViewProps {
   targetPosition?: GeoPosition;
@@ -192,7 +192,7 @@ export default function ARView({
         </div>
       )}
 
-      {/* ターゲットマーカー - 洗練されたデザイン */}
+      {/* ターゲットマーカー - 看板とゴールマーカー */}
       {isInitialized && targetPosition && currentPosition && (
         <div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 ar-container"
@@ -201,7 +201,7 @@ export default function ARView({
             left: targetStyle.left,
           }}
         >
-          <div className="flex flex-col items-center space-y-2">
+          <div className="flex flex-col items-center space-y-3">
             {/* 方向矢印（画面外の場合） */}
             {getDirectionIndicator() && (
               <div className="bg-white/90 ar-backdrop p-2 rounded-full shadow-lg animate-bounce">
@@ -209,29 +209,59 @@ export default function ARView({
               </div>
             )}
 
+            {/* ゴール旗とポール */}
+            <div className="relative ar-goal-marker">
+              {/* 旗のポール */}
+              <div className="w-1 h-16 bg-gradient-to-b from-yellow-600 to-yellow-800 mx-auto shadow-lg"></div>
+              
+              {/* 旗 */}
+              <div className="absolute top-0 left-1 w-12 h-8 bg-gradient-to-r from-red-500 to-red-600 shadow-lg animate-pulse">
+                <div className="w-full h-full relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-400/50 to-transparent"></div>
+                  <Flag className="absolute top-1 left-1 h-4 w-4 text-white/80" />
+                </div>
+              </div>
+            </div>
+
             {/* メインマーカー */}
             <div className="relative ar-marker">
               {/* パルス効果のアウターリング */}
               <div className="absolute inset-0 bg-primary/30 rounded-full ar-pulse-ring"></div>
               <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse scale-125"></div>
+              <div className="absolute inset-0 bg-green-400/30 rounded-full ar-pulse-ring animation-delay-500"></div>
 
               {/* メインマーカー */}
-              <div className="relative bg-gradient-to-br from-primary to-primary-600 p-3 rounded-full shadow-2xl border-4 border-white/50 ar-backdrop ar-glow">
-                <MapPin className="h-8 w-8 text-white drop-shadow-lg" />
+              <div className="relative bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-full shadow-2xl border-4 border-white/50 ar-backdrop ar-glow">
+                <Target className="h-10 w-10 text-white drop-shadow-lg" />
               </div>
             </div>
 
-            {/* 情報パネル */}
-            <div className="bg-black/80 ar-backdrop rounded-2xl px-4 py-2 shadow-2xl border border-white/10 min-w-[120px]">
-              <div className="text-center">
-                <div className="text-white font-semibold text-sm leading-tight truncate max-w-[100px]">
-                  {targetName}
-                </div>
-                {distance !== null && (
-                  <div className="text-primary-200 text-xs mt-1 font-medium tabular-nums">
-                    {formatDistance(distance)}
+            {/* 看板型情報パネル */}
+            <div className="relative ar-signboard">
+              {/* 看板のポスト */}
+              <div className="w-2 h-8 bg-gradient-to-b from-amber-700 to-amber-900 mx-auto shadow-lg"></div>
+              
+              {/* 看板本体 */}
+              <div className="bg-gradient-to-br from-amber-100 to-amber-200 border-4 border-amber-800 rounded-lg px-6 py-4 shadow-2xl ar-backdrop min-w-[160px] relative">
+                {/* 看板の装飾 */}
+                <div className="absolute top-1 left-1 w-2 h-2 bg-amber-600 rounded-full"></div>
+                <div className="absolute top-1 right-1 w-2 h-2 bg-amber-600 rounded-full"></div>
+                <div className="absolute bottom-1 left-1 w-2 h-2 bg-amber-600 rounded-full"></div>
+                <div className="absolute bottom-1 right-1 w-2 h-2 bg-amber-600 rounded-full"></div>
+                
+                <div className="text-center relative z-10">
+                  <div className="text-amber-900 font-bold text-lg leading-tight truncate max-w-[120px] drop-shadow-sm">
+                    🎯 {targetName}
                   </div>
-                )}
+                  {distance !== null && (
+                    <div className="text-amber-800 text-sm mt-1 font-bold tabular-nums drop-shadow-sm">
+                      📍 {formatDistance(distance)}
+                    </div>
+                  )}
+                  <div className="text-amber-700 text-xs mt-1 font-medium">
+                    ゴール地点
+                  </div>
+                </div>
               </div>
             </div>
           </div>

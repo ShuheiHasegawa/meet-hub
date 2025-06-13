@@ -125,6 +125,22 @@
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
+
+  /* 看板とゴールマーカー用スタイル */
+  .ar-goal-marker {
+    animation: ar-goal-wave 3s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+
+  .ar-signboard {
+    animation: ar-signboard-swing 4s ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  /* アニメーション遅延クラス */
+  .animation-delay-500 {
+    animation-delay: 0.5s;
+  }
 }
 
 /* ARアニメーション */
@@ -149,6 +165,38 @@
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+/* ゴール旗の揺れアニメーション */
+@keyframes ar-goal-wave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(2deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+}
+
+/* 看板の揺れアニメーション */
+@keyframes ar-signboard-swing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(1deg);
+  }
+  40% {
+    transform: rotate(-1deg);
+  }
+  60% {
+    transform: rotate(0.5deg);
+  }
+  80% {
+    transform: rotate(-0.5deg);
   }
 }
 
