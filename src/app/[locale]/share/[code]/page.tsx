@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import SharedLocationView from "@/components/location/SharedLocationView";
+import SharedLocationView from "@/components/share/SharedLocationView";
 import { ensureLocationsTable } from "@/app/actions/setup-locations";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { createClient } from "@/lib/supabase/server";
@@ -146,7 +146,7 @@ export default async function SharedLocationPage({
       );
     }
 
-    // SharedLocation型からLocation型へのマッピング
+    // Location型へのマッピング（AR機能付きSharedLocationViewで使用するため）
     const locationForView = {
       id: location.id,
       user_id: location.user_id,
@@ -166,12 +166,12 @@ export default async function SharedLocationPage({
 
     console.log("表示用データ準備完了:", locationForView.id);
 
-    // 有効な共有位置情報を表示
+    // 有効な共有位置情報を表示（AR機能付き）
     return (
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">共有位置情報</h1>
 
-        <SharedLocationView location={locationForView} shareCode={code} />
+        <SharedLocationView location={locationForView} />
       </div>
     );
   } catch (error) {

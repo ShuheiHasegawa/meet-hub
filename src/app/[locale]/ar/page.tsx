@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -7,16 +9,15 @@ import { ArrowLeft, MapPin } from "lucide-react";
 
 // ARコンポーネントはクライアントサイドのみで動作するため、
 // サーバーサイドレンダリングを無効化して動的にインポート
-const ARViewWithNoSSR = dynamic(() => import("@/components/ar/ARView"), {
-  ssr: false,
-});
-
-// クライアントコンポーネントをラップする
 const ARDisplay = dynamic(() => import("@/components/ar/ARDisplay"), {
   ssr: false,
 });
 
-export default function ARPage({ params }: { params: { locale: string } }) {
+interface ARPageProps {
+  params: { locale: string };
+}
+
+export default function ARPage({ params }: ARPageProps) {
   return (
     <div className="container mx-auto py-8 pb-24">
       <div className="mb-6">
