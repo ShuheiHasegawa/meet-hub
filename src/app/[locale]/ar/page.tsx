@@ -34,8 +34,8 @@ export default function ARPage({ params }: { params: { locale: string } }) {
         </p>
       </div>
 
-      {/* AR表示エリア */}
-      <ARDisplay />
+      {/* AR表示エリア - デモモードを有効にして固定距離問題を確認 */}
+      <ARDisplay showDemoMode={true} />
 
       {/* 使い方ガイド */}
       <div className="mt-8">
@@ -84,6 +84,26 @@ export default function ARPage({ params }: { params: { locale: string } }) {
                   カメラ、位置情報、デバイスの向きへのアクセスを許可してください。
                   これらはAR表示に必要です。
                 </p>
+              </div>
+            </div>
+
+            {/* デモモード案内 */}
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-start">
+                <div className="bg-yellow-400/20 p-2 rounded-full mr-3">
+                  <span className="block h-4 w-4 text-center font-bold text-yellow-600 dark:text-yellow-400 text-xs">
+                    🧪
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                    デモモード
+                  </h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    このページではテスト用に現在地から北に100mの位置をターゲットとして表示します。
+                    実際の共有位置情報を使用するには、共有コードでアクセスしてください。
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>

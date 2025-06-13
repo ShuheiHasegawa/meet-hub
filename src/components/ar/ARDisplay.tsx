@@ -7,7 +7,17 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { GeoPosition } from "@/types/location";
 
-export default function ARDisplay() {
+interface ARDisplayProps {
+  targetPosition?: GeoPosition;
+  targetName?: string;
+  showDemoMode?: boolean;
+}
+
+export default function ARDisplay({ 
+  targetPosition: propTargetPosition,
+  targetName: propTargetName = "待ち合わせ場所",
+  showDemoMode = false
+}: ARDisplayProps) {
   // 現在の位置情報を取得
   const {
     position: currentPosition,
@@ -16,11 +26,17 @@ export default function ARDisplay() {
     getCurrentPosition,
   } = useGeolocation();
 
-  // サンプル用ターゲット位置（実際にはAPI呼び出しやDBから取得する）
-  const [targetPosition, setTargetPosition] = useState<GeoPosition | null>(
-    null
-  );
-  const [targetName, setTargetName] = useState("待ち合わせ場所");
+  // ターゲット位置とターゲット名の状態管理
+  const [targetPosition, setTargetPosition] = useState<GeoPosition | null>(propTargetPosition || null);
+  const [targetName, setTargetName] = useState(propTargetName);
+
+  // propsが変更されたら状態を更新
+  useEffect(() => {
+    if (propTargetPosition) {
+      setTargetPosition(propTargetPosition);
+    }
+    setTargetName(propTargetName);
+  }, [propTargetPosition, propTargetName]);
 
   // コンポーネント初期化時に位置情報を取得
   useEffect(() => {
@@ -35,14 +51,16 @@ export default function ARDisplay() {
       hasPosition: !!currentPosition,
       error: positionError,
       geolocationSupported: !!navigator.geolocation,
+      hasTargetPosition: !!targetPosition,
+      showDemoMode,
     });
-  }, [positionLoading, currentPosition, positionError]);
+  }, [positionLoading, currentPosition, positionError, targetPosition, showDemoMode]);
 
-  // ダミーデータの生成（デモ用）
-  // 実際のアプリでは共有コードなどから取得した実際の位置情報を使用する
+  // デモモード用のダミーデータ生成（デモ用のみ）
   useEffect(() => {
-    if (!currentPosition) return;
+    if (!showDemoMode || targetPosition || !currentPosition) return;
 
+    console.log("[ARDisplay] デモモード: ダミーターゲット位置を生成");
     // 現在地から少し離れた位置をダミーターゲットとして設定
     // 北に約100メートル
     const offsetLat = 100 / 111111; // 緯度1度は約111111メートル
@@ -53,7 +71,7 @@ export default function ARDisplay() {
       latitude: currentPosition.latitude + offsetLat,
       longitude: currentPosition.longitude + offsetLng,
     });
-  }, [currentPosition]);
+  }, [currentPosition, showDemoMode, targetPosition]);
 
   // 位置情報を更新
   const handleRefreshLocation = () => {
@@ -100,12 +118,29 @@ export default function ARDisplay() {
     );
   }
 
+  // ターゲット位置が設定されていない場合
+  if (!targetPosition) {
+    return (
+      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-700 dark:text-yellow-300">
+        <h3 className="font-bold mb-2">ターゲット位置が設定されていません</h3>
+        <p className="mb-3">AR表示するための目的地位置情報が必要です。</p>
+        <Button
+          className="mt-4"
+          variant="outline"
+          onClick={handleRefreshLocation}
+        >
+          <RefreshCcw className="h-4 w-4 mr-2" /> 位置情報を更新
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="relative">
         <ARView
           currentPosition={currentPosition}
-          targetPosition={targetPosition || undefined}
+          targetPosition={targetPosition}
           targetName={targetName}
         />
 
@@ -141,6 +176,28 @@ export default function ARDisplay() {
           )}
         </div>
       </div>
+
+      {/* ターゲット位置情報 */}
+      {targetPosition && (
+        <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h3 className="font-medium mb-2">目的地情報</h3>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">名前:</span>{" "}
+              {targetName}
+            </div>
+            <div className="col-span-2">
+              <span className="text-muted-foreground">位置:</span>{" "}
+              {targetPosition.latitude.toFixed(6)}, {targetPosition.longitude.toFixed(6)}
+            </div>
+            {showDemoMode && (
+              <div className="col-span-2 text-yellow-600 dark:text-yellow-400 text-xs">
+                ※ デモモード: テスト用の位置情報を表示中
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

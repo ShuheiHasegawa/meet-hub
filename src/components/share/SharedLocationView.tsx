@@ -17,7 +17,6 @@ import {
   MapPin,
   Navigation,
   Compass,
-  ArrowUp,
 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Location, LocationWithDistance } from "@/types/location";
@@ -25,8 +24,13 @@ import {
   calculateDistanceAndBearing,
   getFormattedDistance,
   getRelativeDirection,
-  calculatePointerDirection,
 } from "@/lib/location/geo-utils";
+import dynamic from "next/dynamic";
+
+// ARDisplayコンポーネントを動的にインポート（デバイス方向APIがサーバーサイドで利用できないため）
+const ARDisplay = dynamic(() => import("@/components/ar/ARDisplay"), {
+  ssr: false,
+});
 
 interface SharedLocationViewProps {
   location: Location | LocationWithDistance;
@@ -49,17 +53,6 @@ export default function SharedLocationView({
       distance: undefined,
       bearing: undefined,
     });
-  const [deviceOrientation, setDeviceOrientation] = useState<{
-    absolute: boolean;
-    alpha: number | null; // Z軸周りの回転（コンパスヘッディング）
-    beta: number | null; // X軸周りの回転（前後の傾き）
-    gamma: number | null; // Y軸周りの回転（左右の傾き）
-  }>({
-    absolute: false,
-    alpha: null,
-    beta: null,
-    gamma: null,
-  });
 
   // ARモードのステータス
   const [arMode, setArMode] = useState(false);
@@ -73,30 +66,6 @@ export default function SharedLocationView({
       stopWatching();
     };
   }, [getCurrentPosition, startWatching, stopWatching]);
-
-  // デバイスの向きセンサーを監視
-  useEffect(() => {
-    // デバイス方向のイベントリスナー
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      setDeviceOrientation({
-        absolute: event.absolute,
-        alpha: event.alpha,
-        beta: event.beta,
-        gamma: event.gamma,
-      });
-    };
-
-    // デバイス方向APIが存在するか確認
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", handleOrientation);
-    }
-
-    return () => {
-      if (window.DeviceOrientationEvent) {
-        window.removeEventListener("deviceorientation", handleOrientation);
-      }
-    };
-  }, []);
 
   // 現在位置から目的地までの距離と方位を計算
   useEffect(() => {
@@ -151,31 +120,6 @@ export default function SharedLocationView({
     } else {
       setArMode(false);
     }
-  };
-
-  // 方向を指すポインタの角度を計算
-  const getPointerStyle = () => {
-    if (
-      !position ||
-      !deviceOrientation.alpha ||
-      !locationWithDistance.bearing
-    ) {
-      return {};
-    }
-
-    const pointerAngle = calculatePointerDirection(
-      position,
-      {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        altitude: location.altitude,
-      },
-      deviceOrientation.alpha
-    );
-
-    return {
-      transform: `rotate(${pointerAngle}deg)`,
-    };
   };
 
   // 位置情報の日時をフォーマット
@@ -267,43 +211,36 @@ export default function SharedLocationView({
         </CardFooter>
       </Card>
 
-      {/* ARモード表示 */}
+      {/* ARモード表示 - 新しいARDisplayコンポーネントを使用 */}
       {arMode && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-          <div className="absolute top-6 left-0 right-0 text-center">
+        <div className="fixed inset-0 bg-black z-50">
+          {/* ヘッダー */}
+          <div className="absolute top-6 left-0 right-0 text-center z-10">
             <h2 className="text-white text-xl font-bold">ARモード</h2>
             <p className="text-white/70">
               スマホを持って周りを見回してください
             </p>
           </div>
 
-          {/* 方向ポインター */}
-          <div
-            className="w-32 h-32 flex items-center justify-center"
-            style={getPointerStyle()}
-          >
-            <ArrowUp className="h-24 w-24 text-yellow-400" />
+          {/* ARDisplay コンポーネント */}
+          <div className="w-full h-full">
+            <ARDisplay
+              targetPosition={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+                altitude: location.altitude,
+              }}
+              targetName={location.title || "待ち合わせ場所"}
+            />
           </div>
-
-          {/* 距離表示 */}
-          {locationWithDistance.distance !== undefined && (
-            <div className="absolute bottom-20 left-0 right-0 text-center">
-              <div className="text-white text-3xl font-bold">
-                {getFormattedDistance(locationWithDistance.distance)}
-              </div>
-              <div className="text-white/70">
-                {getRelativeDirection(locationWithDistance.bearing || 0)}方向
-              </div>
-            </div>
-          )}
 
           {/* 閉じるボタン */}
           <Button
             variant="outline"
-            className="absolute bottom-6 left-0 right-0 mx-auto w-32"
+            className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10"
             onClick={() => setArMode(false)}
           >
-            閉じる
+            ARモード終了
           </Button>
         </div>
       )}
